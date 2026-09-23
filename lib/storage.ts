@@ -862,7 +862,23 @@ export class StorageEngine {
     try {
       localStorage.setItem(STORAGE_KEY_RECORDS, JSON.stringify(records));
     } catch (e) {
-      console.error('Failed to save records to localStorage', e);
+      console.warn('Failed to save full records payload, attempting stripped storage fallback', e);
+      try {
+        const sanitized = records.map(r => {
+          if (!r.details) return r;
+          try {
+            const parsed = JSON.parse(r.details);
+            if (parsed.proofFileData && parsed.proofFileData.length > 50000) {
+              parsed.proofFileData = undefined;
+              return { ...r, details: JSON.stringify(parsed) };
+            }
+          } catch {}
+          return r;
+        });
+        localStorage.setItem(STORAGE_KEY_RECORDS, JSON.stringify(sanitized));
+      } catch (err2) {
+        console.error('Critical localStorage write failure:', err2);
+      }
     }
   }
 
