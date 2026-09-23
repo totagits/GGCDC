@@ -15,10 +15,11 @@ if (existsSync('public/favicon.svg')) {
 console.log('==> Pushing to origin gh-pages...');
 execSync('git -C dist-pages init -b gh-pages', { stdio: 'inherit' });
 execSync('git -C dist-pages add .', { stdio: 'inherit' });
+const timestamp = new Date().toISOString();
 try {
-  execSync('git -C dist-pages commit -m "Deploy GGCDC static platform to GitHub Pages"', { stdio: 'inherit' });
-} catch {
-  // Clean working tree if already committed
+  execSync(`git -C dist-pages commit --allow-empty -m "Deploy GGCDC static platform: ${timestamp}"`, { stdio: 'inherit' });
+} catch (e) {
+  console.log('Commit note:', e.message);
 }
 
 try {

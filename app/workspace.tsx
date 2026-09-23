@@ -269,8 +269,11 @@ const HERO_SLIDES = [
 ];
 
 export default function Workspace({ user: initialUser }: { user?: string }) {
-  // Navigation State - 'home' is the public portal; other tabs represent the Council Workspace
-  const [activeTab, setActiveTab] = useState<'home' | 'dashboard' | 'putu-group' | 'architecture' | 'roadmap' | 'pillars' | 'tools'>('home');
+  // Top-Level View Mode: 'public' (full-width public portal, NO internal sidebar) vs 'workspace' (internal operations, RBAC sidebar)
+  const [viewMode, setViewMode] = useState<'public' | 'workspace'>('public');
+  const [publicTab, setPublicTab] = useState<'home' | 'architecture' | 'roadmap' | 'pillars' | 'putu-group' | 'grievance' | 'workforce'>('home');
+  const [publicMobileNav, setPublicMobileNav] = useState(false);
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'putu-group' | 'architecture' | 'roadmap' | 'pillars' | 'tools'>('dashboard');
   const [activeModuleId, setActiveModuleId] = useState<string>('agreements');
   const [activeTool, setActiveTool] = useState<'matcher' | 'explorer' | 'grievance-portal' | 'charter' | 'backup'>('matcher');
   
@@ -720,14 +723,619 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
   const activeSlideData = HERO_SLIDES[currentSlide];
 
   // ----------------------------------------------------------------------
-  // SCENARIO 1: PUBLIC LANDING PAGE (NO SIDEBAR!)
+  // REUSABLE VIEW CONTENT RENDERERS (PUBLIC & WORKSPACE)
   // ----------------------------------------------------------------------
-  if (activeTab === 'home') {
+  const renderArchitectureContent = () => (
+    <div>
+      <div className="heading">
+        <div>
+          <div className="eyebrow">STRATEGIC GOVERNANCE ARCHITECTURE</div>
+          <h1>Independent County Stakeholder Platform</h1>
+          <p>
+            Why GGCDC is designed as an independent, county-centered platform rather than a diaspora branch, statutory authority, or political movement.
+          </p>
+        </div>
+      </div>
+
+      {/* FLOWCHART / ARCHITECTURE VISUALIZATION */}
+      <div style={{ background: '#fff', border: '1px solid #dce5e0', borderRadius: '14px', padding: '32px', marginBottom: '32px', boxShadow: '0 4px 16px #10352f08' }}>
+        <h3 style={{ font: '700 20px Georgia', margin: '0 0 20px', color: '#10352f', textAlign: 'center' }}>
+          Grand Gedeh Institutional Tripartite Arrangement
+        </h3>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', alignItems: 'stretch' }}>
+          {/* Pillar 1: Sovereign Foundation */}
+          <div style={{ border: '2px solid #2e7d32', borderRadius: '12px', background: '#f4fbf5', padding: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+              <div style={{ background: '#2e7d32', color: '#fff', padding: '6px 10px', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px' }}>
+                FOUNDATION
+              </div>
+              <strong style={{ fontSize: '16px', color: '#1b5e20' }}>In-County Citizens & Communities</strong>
+            </div>
+            <ul style={{ fontSize: '13px', color: '#2e4d34', lineHeight: 1.6, paddingLeft: '18px', margin: 0 }}>
+              <li>Customary Landowners & Clans (Jarwodee, Pennoken, Tiama, Konobo)</li>
+              <li>Traditional Chiefs & Council of Elders</li>
+              <li>Rural Women Networks & Youth Associations</li>
+              <li>Persons with Disabilities & Local Artisans</li>
+              <li>Retain sacred land rights and direct veto under Land Rights Act</li>
+            </ul>
+          </div>
+
+          {/* Pillar 2: The Civic Stakeholder Platform (GGCDC) */}
+          <div style={{ border: '3px solid #14493e', borderRadius: '12px', background: '#ebf4f1', padding: '20px', position: 'relative' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+              <div style={{ background: '#14493e', color: '#d5ae59', padding: '6px 10px', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px' }}>
+                CIVIC VEHICLE
+              </div>
+              <strong style={{ fontSize: '17px', color: '#10352f' }}>GGCDC (The Council)</strong>
+            </div>
+            <p style={{ fontSize: '13px', fontWeight: 600, color: '#1d5a4d', margin: '0 0 10px' }}>
+              "One County • One Voice • Shared Development"
+            </p>
+            <ul style={{ fontSize: '13px', color: '#274b42', lineHeight: 1.6, paddingLeft: '18px', margin: 0 }}>
+              <li>County-centered, independent & nonpartisan</li>
+              <li>Structured citizen coordination & evidence aggregation</li>
+              <li>Operates the specialized Putu Mining Working Group (14 focus areas)</li>
+              <li>Does NOT negotiate mineral rights (belonging to GoL)</li>
+              <li>Does NOT claim statutory powers (unlike a statutory Authority)</li>
+            </ul>
+          </div>
+
+          {/* Pillar 3: External Counterparties */}
+          <div style={{ border: '2px solid #b76e00', borderRadius: '12px', background: '#fdfaf2', padding: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+              <div style={{ background: '#b76e00', color: '#fff', padding: '6px 10px', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px' }}>
+                EXTERNAL PARTIES
+              </div>
+              <strong style={{ fontSize: '16px', color: '#7a4a00' }}>Structured Engagement</strong>
+            </div>
+            <ul style={{ fontSize: '13px', color: '#68450d', lineHeight: 1.6, paddingLeft: '18px', margin: 0 }}>
+              <li><strong>Government of Liberia:</strong> Statutory mineral authority, regulatory permits (EPA), and fiscal revenue collection.</li>
+              <li><strong>Putu Mining Investor / Concessionaire:</strong> Capital investment, mine construction, operational compliance.</li>
+              <li>GGCDC engages these parties through formal consultative advocacy, monitoring, and legal dialogue.</li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Technical Support Tier */}
+        <div style={{ marginTop: '24px', padding: '18px 24px', background: '#f8faf9', border: '1px dashed #7ea395', borderRadius: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+            <ShieldCheck size={20} color="#1b5e20" />
+            <strong style={{ color: '#133e36', fontSize: '15px' }}>
+              Technical, Legal & Diaspora Support Backbone:
+            </strong>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', fontSize: '13px', color: '#38554c' }}>
+            <div>
+              <strong>Grand Gedeh Association in the Americas (GGAA):</strong> Strategic diaspora partner mobilizing engineers, accountants, environmental scientists, and international advocacy. Supports without controlling or claiming to speak over in-county residents.
+            </div>
+            <div>
+              <strong>Grand Gedeh Bar Association (GGBA):</strong> Provides independent legal counsel, reviews MDA clauses, drafts charter covenants, and enforces community land rights and anti-conflict of interest rules.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* COMPARATIVE ANALYSIS CARDS */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+        <div style={{ background: '#fff', border: '1px solid #dce5e0', borderRadius: '12px', padding: '24px' }}>
+          <h4 style={{ font: '700 18px Georgia', margin: '0 0 12px', color: '#133e36' }}>
+            Why "Citizens Development Council"?
+          </h4>
+          <p style={{ fontSize: '14px', color: '#556961', lineHeight: 1.6, margin: '0 0 12px' }}>
+            The name communicates enduring legitimacy. It is broader than mining, broader than GGAA, and broader than any particular political administration or single investor.
+          </p>
+          <ul style={{ fontSize: '13px', color: '#455952', lineHeight: 1.6, paddingLeft: '18px', margin: 0 }}>
+            <li><strong>Avoids "Authority":</strong> Does not imply statutory governmental powers or attempt to supplant elected county administration or ministries.</li>
+            <li><strong>Avoids "People's Council":</strong> Prevents confusion with partisan political movements.</li>
+            <li><strong>Avoids "Putu Committee":</strong> Ensures the institution remains relevant long after Putu, addressing forestry, agriculture, corridor roads, and future concessions.</li>
+          </ul>
+        </div>
+
+        <div style={{ background: '#fff', border: '1px solid #dce5e0', borderRadius: '12px', padding: '24px' }}>
+          <h4 style={{ font: '700 18px Georgia', margin: '0 0 12px', color: '#133e36' }}>
+            Role of President Poah's Dispatched Emissary
+          </h4>
+          <p style={{ fontSize: '14px', color: '#556961', lineHeight: 1.6, margin: '0 0 12px' }}>
+            President Edith T. Poah dispatched an emissary to Monrovia to facilitate dialogue rather than arrive as a predetermined chairman.
+          </p>
+          <ul style={{ fontSize: '13px', color: '#455952', lineHeight: 1.6, paddingLeft: '18px', margin: 0 }}>
+            <li>Serves as a <strong>GGAA Liaison & Consultative Facilitator</strong>.</li>
+            <li>Coordinates with Monrovia-based Grand Gedeh elders, student unions, and professionals.</li>
+            <li>Engages GGBA to draft independent legal bylaws.</li>
+            <li>Facilitates the creation of the in-county platform where legitimacy is earned through open consultative formation in Grand Gedeh.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderRoadmapContent = () => (
+    <div>
+      <div className="heading">
+        <div>
+          <div className="eyebrow">FORMATION PROCESS & DIALOGUE MILESTONES</div>
+          <h1>Consultative Formation Roadmap</h1>
+          <p>
+            Tracking the 5-phase civic roadmap from Monrovia preliminary outreach to the Grand Gedeh Stakeholder Constitutional Assembly.
+          </p>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        {consultativeRoadmap.map((phase) => (
+          <div
+            key={phase.phase}
+            style={{
+              background: '#fff',
+              border: '1px solid #dce5e0',
+              borderRadius: '12px',
+              padding: '24px 28px',
+              display: 'grid',
+              gridTemplateColumns: '60px 1fr 240px',
+              gap: '24px',
+              alignItems: 'start'
+            }}
+          >
+            <div style={{
+              width: '50px',
+              height: '50px',
+              borderRadius: '50%',
+              background: phase.status === 'Completed' ? '#e1f4e7' : phase.status === 'In progress' ? '#14493e' : '#f0f4f2',
+              color: phase.status === 'Completed' ? '#21653b' : phase.status === 'In progress' ? '#fff' : '#698075',
+              display: 'grid',
+              placeItems: 'center',
+              font: '700 20px Georgia'
+            }}>
+              {phase.phase}
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                <h3 style={{ font: '700 20px Georgia', margin: 0, color: '#133e36' }}>
+                  {phase.title}
+                </h3>
+                <span className={`status ${phase.status.toLowerCase().replaceAll(' ', '-')}`}>
+                  {phase.status}
+                </span>
+              </div>
+              <p style={{ fontSize: '14px', color: '#5b6e66', lineHeight: 1.55, margin: '0 0 14px' }}>
+                {phase.description}
+              </p>
+              <div>
+                <strong style={{ fontSize: '13px', color: '#1b493e', display: 'block', marginBottom: '6px' }}>
+                  Key Consultative Milestones:
+                </strong>
+                <ul style={{ fontSize: '13px', color: '#3d5249', lineHeight: 1.6, paddingLeft: '18px', margin: 0 }}>
+                  {phase.keyMilestones.map((m, idx) => (
+                    <li key={idx}>{m}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            <div style={{ background: '#f7faf8', padding: '16px', borderRadius: '8px', border: '1px solid #e1ebe5', fontSize: '13px' }}>
+              <span style={{ color: '#7a8c84', fontSize: '11px', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>
+                LEAD FACILITATOR
+              </span>
+              <strong style={{ display: 'block', color: '#1b473c', margin: '4px 0 12px' }}>
+                {phase.leadEntity}
+              </strong>
+              <span style={{ color: '#7a8c84', fontSize: '11px', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>
+                TIMELINE
+              </span>
+              <strong style={{ display: 'block', color: '#1b473c', marginTop: '4px' }}>
+                {phase.timeline}
+              </strong>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderPillarsContent = () => (
+    <div>
+      <div className="heading">
+        <div>
+          <div className="eyebrow">FOUNDING REPRESENTATION STRUCTURE</div>
+          <h1>The 12 Founding Stakeholder Pillars</h1>
+          <p>
+            Ensuring broad, balanced, and legitimate representation across customary landholders, women, youth, traditional chiefs, professionals, and diaspora partners.
+          </p>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '18px' }}>
+        {stakeholderPillars.map((p) => (
+          <div
+            key={p.id}
+            style={{
+              background: '#fff',
+              border: '1px solid #dce5e0',
+              borderRadius: '12px',
+              padding: '22px 24px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <span style={{ fontSize: '11px', fontWeight: 800, color: '#976e1a', background: '#fcf6e8', padding: '4px 8px', borderRadius: '4px', letterSpacing: '0.05em' }}>
+                {p.category}
+              </span>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#1d5a4d', background: '#eaf4f0', padding: '4px 8px', borderRadius: '4px' }}>
+                {p.seatAllocation}
+              </span>
+            </div>
+
+            <h3 style={{ font: '700 18px Georgia', margin: 0, color: '#123e37' }}>
+              {p.name}
+            </h3>
+            <p style={{ fontSize: '13px', color: '#556960', lineHeight: 1.5, margin: 0 }}>
+              {p.description}
+            </p>
+
+            <div style={{ marginTop: 'auto', paddingTop: '10px', borderTop: '1px solid #edf2ef', fontSize: '12px', color: '#3d5248' }}>
+              <strong>Key Stakeholders:</strong> {p.leadStakeholders}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderPublicPutuGroupContent = () => (
+    <div>
+      <div className="heading">
+        <div>
+          <div className="eyebrow">PUTU MINING & DEVELOPMENT WORKING GROUP</div>
+          <h1>Public Sector Transparency Directory</h1>
+          <p>
+            Explore public council monitoring, customary rights documentation, environmental readings, and workforce pipelines across the 14 operational sectors.
+          </p>
+        </div>
+        <Button className="primary" onClick={() => { setViewMode('workspace'); setActiveTab('putu-group'); }}>
+          <LayoutDashboard size={16} /> Enter Council Workspace
+        </Button>
+      </div>
+
+      {/* Thematic Navigation Pills */}
+      <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '16px', marginBottom: '24px' }}>
+        {modules.map(m => (
+          <button
+            key={m.id}
+            onClick={() => { setActiveModuleId(m.id); setSearch(''); }}
+            style={{
+              padding: '8px 14px',
+              borderRadius: '20px',
+              fontSize: '13px',
+              fontWeight: 600,
+              whiteSpace: 'nowrap',
+              border: activeModuleId === m.id ? '2px solid #14493e' : '1px solid #d4ded8',
+              background: activeModuleId === m.id ? '#14493e' : '#ffffff',
+              color: activeModuleId === m.id ? '#ffffff' : '#455a52',
+              cursor: 'pointer'
+            }}
+          >
+            {m.short} ({moduleCounts[m.id] || 0})
+          </button>
+        ))}
+      </div>
+
+      {/* Active Module Banner */}
+      <div style={{ background: '#fff', border: '1px solid #dce5e0', borderRadius: '12px', padding: '24px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+        <div>
+          <span style={{ fontSize: '11px', textTransform: 'uppercase', fontWeight: 800, color: '#976e1a', letterSpacing: '0.06em' }}>
+            SECTOR FOCUS AREA #{modules.findIndex(m => m.id === currentModule.id) + 1}
+          </span>
+          <h2 style={{ font: '700 22px Georgia', margin: '4px 0 6px', color: '#10352f' }}>
+            {currentModule.name}
+          </h2>
+          <p style={{ margin: 0, fontSize: '14px', color: '#526960', maxWidth: '800px' }}>
+            {currentModule.description}
+          </p>
+        </div>
+        <div style={{ fontSize: '13px', color: '#1b493e', background: '#ebf4f1', padding: '8px 14px', borderRadius: '8px', fontWeight: 600 }}>
+          {filteredRecords.length} Public Entries Logged
+        </div>
+      </div>
+
+      {/* Filter Bar */}
+      <div className="filterBar" style={{ marginBottom: '20px' }}>
+        <div className="searchBox">
+          <Search size={18} />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={`Search public ${currentModule.short} records…`}
+          />
+        </div>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            style={{ height: '40px', borderRadius: '8px', border: '1px solid #d5ded9', padding: '0 12px', fontSize: '13px' }}
+          >
+            <option value="All">All Statuses</option>
+            {statuses.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <select
+            value={countyFilter}
+            onChange={(e) => setCountyFilter(e.target.value)}
+            style={{ height: '40px', borderRadius: '8px', border: '1px solid #d5ded9', padding: '0 12px', fontSize: '13px' }}
+          >
+            <option value="All">All Counties / Areas</option>
+            {counties.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+      </div>
+
+      {/* Public Records Table */}
+      <div className="tableWrap" style={{ background: '#fff', borderRadius: '12px', border: '1px solid #dce5e0', padding: '6px' }}>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Record Title & ID</TableHead>
+              <TableHead>Community / Clan</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Target Date</TableHead>
+              <TableHead>Public Summary</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredRecords.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} style={{ textAlign: 'center', padding: '40px', color: '#7a8c83' }}>
+                  No records match your search filter in this sector.
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredRecords.map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell>
+                    <strong style={{ color: '#133e36', display: 'block' }}>{r.title}</strong>
+                    <small style={{ color: '#7c8e86' }}>Ref: #{r.id.slice(0, 8)}</small>
+                  </TableCell>
+                  <TableCell>
+                    <span>{r.community}</span>
+                    <small style={{ display: 'block', color: '#7c8e86' }}>{r.county}</small>
+                  </TableCell>
+                  <TableCell>
+                    <span className={`status ${r.status.toLowerCase().replaceAll(' ', '-')}`}>
+                      {r.status}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    {r.due_date ? new Date(r.due_date).toLocaleDateString() : '—'}
+                  </TableCell>
+                  <TableCell style={{ maxWidth: '350px' }}>
+                    <p style={{ margin: 0, fontSize: '13px', color: '#4a6157', lineHeight: 1.4 }}>
+                      {r.summary || 'Verified council entry.'}
+                    </p>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
+
+  const renderPublicGrievanceSection = () => (
+    <div style={{ background: '#fff', border: '1px solid #dce5e0', borderRadius: '14px', padding: '32px', maxWidth: '850px', margin: '0 auto' }}>
+      <div style={{ marginBottom: '24px' }}>
+        <div className="eyebrow">ETHICS & WHISTLEBLOWER INTAKE</div>
+        <h2 style={{ font: '700 24px Georgia', margin: '4px 0 8px', color: '#10352f' }}>
+          Confidential Grievance Portal
+        </h2>
+        <p style={{ fontSize: '14px', color: '#596e65', lineHeight: 1.55, margin: 0 }}>
+          Grand Gedean citizens, farmers, and workers can safely log complaints regarding land incursions, uncompensated crop damage, unfair subcontractor hiring, or environmental spills. Restricted submissions guarantee whistleblower protection.
+        </p>
+      </div>
+
+      {grievanceSuccessRef && (
+        <div style={{ background: '#e8f8f0', border: '1px solid #a3e4d7', padding: '16px', borderRadius: '8px', marginBottom: '20px', color: '#0e6251' }}>
+          <strong style={{ display: 'block', fontSize: '16px' }}>Grievance Successfully Registered!</strong>
+          <p style={{ margin: '6px 0 0', fontSize: '14px' }}>
+            Your reference case tracking code is <strong>{grievanceSuccessRef}</strong>. The GGBA Legal Counsel and Ethics Panel will review this within 14 business days.
+          </p>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmitGrievance} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div>
+          <label style={{ fontSize: '13px', fontWeight: 600, color: '#274b41', display: 'block', marginBottom: '6px' }}>
+            Incident Title / Subject *
+          </label>
+          <Input
+            value={grievanceForm.title}
+            onChange={(e) => setGrievanceForm({ ...grievanceForm, title: e.target.value })}
+            placeholder="e.g. Uncompensated clearing of cassava farm along Putu haul route"
+            required
+          />
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+          <div>
+            <label style={{ fontSize: '13px', fontWeight: 600, color: '#274b41', display: 'block', marginBottom: '6px' }}>
+              Grievance Category
+            </label>
+            <select
+              value={grievanceForm.category}
+              onChange={(e) => setGrievanceForm({ ...grievanceForm, category: e.target.value })}
+              style={{ width: '100%', height: '38px', borderRadius: '6px', border: '1px solid #d5ded9', padding: '0 10px' }}
+            >
+              <option>Land & Environmental Damage</option>
+              <option>Labor & Hiring Kickbacks</option>
+              <option>Water Pollution / Turbidity</option>
+              <option>Resettlement & Housing</option>
+              <option>Contractor Non-Payment</option>
+              <option>Other Community Concern</option>
+            </select>
+          </div>
+
+          <div>
+            <label style={{ fontSize: '13px', fontWeight: 600, color: '#274b41', display: 'block', marginBottom: '6px' }}>
+              Affected Community / Town
+            </label>
+            <Input
+              value={grievanceForm.community}
+              onChange={(e) => setGrievanceForm({ ...grievanceForm, community: e.target.value })}
+              placeholder="e.g. Putu Jarwodee, Pennoken, Tiama"
+              required
+            />
+          </div>
+
+          <div>
+            <label style={{ fontSize: '13px', fontWeight: 600, color: '#274b41', display: 'block', marginBottom: '6px' }}>
+              Confidentiality Level
+            </label>
+            <select
+              value={grievanceForm.confidentiality}
+              onChange={(e) => setGrievanceForm({ ...grievanceForm, confidentiality: e.target.value })}
+              style={{ width: '100%', height: '38px', borderRadius: '6px', border: '1px solid #d5ded9', padding: '0 10px' }}
+            >
+              <option value="Restricted">Restricted (Whistleblower Protection)</option>
+              <option value="Standard">Standard (Public within Council)</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label style={{ fontSize: '13px', fontWeight: 600, color: '#274b41', display: 'block', marginBottom: '6px' }}>
+            Detailed Description of the Incident *
+          </label>
+          <Textarea
+            rows={4}
+            value={grievanceForm.description}
+            onChange={(e) => setGrievanceForm({ ...grievanceForm, description: e.target.value })}
+            placeholder="State the dates, parties involved, equipment or contractors, and specific harm caused..."
+            required
+          />
+        </div>
+
+        <div>
+          <label style={{ fontSize: '13px', fontWeight: 600, color: '#274b41', display: 'block', marginBottom: '6px' }}>
+            Requested Remedy / Corrective Action
+          </label>
+          <Textarea
+            rows={2}
+            value={grievanceForm.remedy}
+            onChange={(e) => setGrievanceForm({ ...grievanceForm, remedy: e.target.value })}
+            placeholder="What resolution or restitution are the community or workers requesting?"
+          />
+        </div>
+
+        <div>
+          <label style={{ fontSize: '13px', fontWeight: 600, color: '#274b41', display: 'block', marginBottom: '6px' }}>
+            Claimant Contact / Representative (Kept strictly private if Restricted)
+          </label>
+          <Input
+            value={grievanceForm.claimantContact}
+            onChange={(e) => setGrievanceForm({ ...grievanceForm, claimantContact: e.target.value })}
+            placeholder="Phone number, WhatsApp, or trusted town representative"
+          />
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+          <Button type="submit" className="primary" style={{ height: '42px', padding: '0 24px', fontSize: '14px', fontWeight: 700 }}>
+            <Send size={16} /> Submit Confidential Grievance
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+
+  const renderPublicWorkforceContent = () => (
+    <div style={{ background: '#fff', border: '1px solid #dce5e0', borderRadius: '12px', padding: '28px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
+        <div>
+          <div className="eyebrow">LOCAL TALENT PIPELINE</div>
+          <h2 style={{ font: '700 24px Georgia', margin: '4px 0 6px', color: '#133e36' }}>
+            Grand Gedeh Workforce Registry & Matcher
+          </h2>
+          <p style={{ fontSize: '14px', color: '#687b73', margin: 0 }}>
+            Match verified Grand Gedean tradespeople and professionals to mining contractor recruitment quotas with consent safeguards.
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <select
+            value={matcherTrade}
+            onChange={(e) => setMatcherTrade(e.target.value)}
+            style={{ height: '38px', borderRadius: '6px', border: '1px solid #d5ded9', padding: '0 10px', fontSize: '13px' }}
+          >
+            <option value="All">All Trades & Occupations</option>
+            <option value="Operator">Heavy Equipment Operators</option>
+            <option value="Welder">Welding & Fabrication</option>
+            <option value="Environmental">Environmental Scientists</option>
+            <option value="Logistics">Supply Chain & Logistics</option>
+          </select>
+
+          <select
+            value={matcherMinExp}
+            onChange={(e) => setMatcherMinExp(Number(e.target.value))}
+            style={{ height: '38px', borderRadius: '6px', border: '1px solid #d5ded9', padding: '0 10px', fontSize: '13px' }}
+          >
+            <option value="0">Any Experience</option>
+            <option value="5">5+ Years Experience</option>
+            <option value="8">8+ Years Experience</option>
+            <option value="10">10+ Years Experience</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="tableWrap">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Candidate & Location</TableHead>
+              <TableHead>Trade / Occupation</TableHead>
+              <TableHead>Experience</TableHead>
+              <TableHead>Qualifications & Certification</TableHead>
+              <TableHead>Consent Verified</TableHead>
+              <TableHead>Availability</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {workforceCandidates.map((c) => (
+              <TableRow key={c.id}>
+                <TableCell>
+                  <strong style={{ color: '#11352f' }}>{c.name}</strong>
+                  <small style={{ display: 'block', color: '#6c8077' }}>{c.community}, Grand Gedeh</small>
+                </TableCell>
+                <TableCell>{c.occupation}</TableCell>
+                <TableCell>{c.experience} Years</TableCell>
+                <TableCell><small>{c.qualification}</small></TableCell>
+                <TableCell>
+                  {c.consent ? (
+                    <span style={{ color: '#2e7d32', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <ShieldCheck size={16} /> Yes (Recorded)
+                    </span>
+                  ) : (
+                    <span style={{ color: '#c62828' }}>No consent</span>
+                  )}
+                </TableCell>
+                <TableCell><span className="status in-progress">{c.availability}</span></TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
+
+  // ----------------------------------------------------------------------
+  // SCENARIO 1: PUBLIC CIVIC PORTAL (FULL-WIDTH, STRICTLY NO INTERNAL SIDEBAR)
+  // ----------------------------------------------------------------------
+  if (viewMode === 'public') {
     return (
       <div className="publicShell">
         {/* PUBLIC TOP NAVBAR */}
         <header className="publicNavbar">
-          <div className="publicBrand" onClick={() => setActiveTab('home')}>
+          <div className="publicBrand" onClick={() => setPublicTab('home')}>
             <div className="seal">G</div>
             <div>
               <strong>GGCDC</strong>
@@ -736,62 +1344,85 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
           </div>
 
           <nav className="publicNavLinks">
-            <button className="publicNavLink" onClick={() => setActiveTab('architecture')}>
+            <button
+              className={`publicNavLink ${publicTab === 'home' ? 'activeNavLink' : ''}`}
+              onClick={() => setPublicTab('home')}
+            >
+              Home
+            </button>
+            <button
+              className={`publicNavLink ${publicTab === 'architecture' ? 'activeNavLink' : ''}`}
+              onClick={() => setPublicTab('architecture')}
+            >
               Architecture & Model
             </button>
-            <button className="publicNavLink" onClick={() => { setActiveTab('putu-group'); setActiveModuleId('agreements'); }}>
-              Putu Working Groups (14)
-            </button>
-            <button className="publicNavLink" onClick={() => setActiveTab('roadmap')}>
+            <button
+              className={`publicNavLink ${publicTab === 'roadmap' ? 'activeNavLink' : ''}`}
+              onClick={() => setPublicTab('roadmap')}
+            >
               Consultative Roadmap
             </button>
-            <button className="publicNavLink" onClick={() => setActiveTab('pillars')}>
+            <button
+              className={`publicNavLink ${publicTab === 'pillars' ? 'activeNavLink' : ''}`}
+              onClick={() => setPublicTab('pillars')}
+            >
               12 Stakeholder Pillars
             </button>
-            <button className="publicNavLink" onClick={() => { setActiveTab('tools'); setActiveTool('grievance-portal'); }}>
-              Confidential Grievance Portal
+            <button
+              className={`publicNavLink ${publicTab === 'putu-group' ? 'activeNavLink' : ''}`}
+              onClick={() => { setPublicTab('putu-group'); setActiveModuleId('agreements'); }}
+            >
+              Putu Working Groups (14)
+            </button>
+            <button
+              className={`publicNavLink ${publicTab === 'grievance' ? 'activeNavLink' : ''}`}
+              onClick={() => setPublicTab('grievance')}
+            >
+              Public Grievance Desk
+            </button>
+            <button
+              className={`publicNavLink ${publicTab === 'workforce' ? 'activeNavLink' : ''}`}
+              onClick={() => setPublicTab('workforce')}
+            >
+              Workforce Talent Pool
             </button>
           </nav>
 
           <div className="publicNavActions">
-            {/* Persona Simulator */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '11px', color: '#688075', fontWeight: 700, textTransform: 'uppercase' }}>
-                RBAC Persona:
-              </span>
-              <select
-                value={currentRole.id}
-                onChange={(e) => {
-                  const r = ROLES.find(item => item.id === e.target.value);
-                  if (r) setCurrentRole(r);
-                }}
-                style={{
-                  height: '34px',
-                  borderRadius: '6px',
-                  border: '1px solid #d5ded9',
-                  background: '#f8faf9',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  color: '#1a4338',
-                  padding: '0 8px'
-                }}
-              >
-                {ROLES.map(r => (
-                  <option key={r.id} value={r.id}>{r.name} ({r.badge})</option>
-                ))}
-              </select>
-            </div>
-
             {/* Primary Action to Enter Internal Workspace */}
             <Button
               className="primary"
-              onClick={() => setActiveTab('dashboard')}
+              onClick={() => { setViewMode('workspace'); setActiveTab('dashboard'); }}
               style={{ height: '38px', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}
             >
-              <LayoutDashboard size={15} /> Council Workspace
+              <LayoutDashboard size={15} /> Enter Council Workspace
             </Button>
+
+            <button
+              className="publicMobileToggle"
+              onClick={() => setPublicMobileNav(!publicMobileNav)}
+              aria-label="Toggle navigation menu"
+            >
+              {publicMobileNav ? <X size={20} /> : <Menu size={20} />}
+            </button>
           </div>
         </header>
+
+        {/* MOBILE NAVIGATION DRAWER */}
+        {publicMobileNav && (
+          <div className="publicMobileDrawer">
+            <button className={`mobileLink ${publicTab === 'home' ? 'chosen' : ''}`} onClick={() => { setPublicTab('home'); setPublicMobileNav(false); }}>Home</button>
+            <button className={`mobileLink ${publicTab === 'architecture' ? 'chosen' : ''}`} onClick={() => { setPublicTab('architecture'); setPublicMobileNav(false); }}>Architecture & Model</button>
+            <button className={`mobileLink ${publicTab === 'roadmap' ? 'chosen' : ''}`} onClick={() => { setPublicTab('roadmap'); setPublicMobileNav(false); }}>Consultative Roadmap</button>
+            <button className={`mobileLink ${publicTab === 'pillars' ? 'chosen' : ''}`} onClick={() => { setPublicTab('pillars'); setPublicMobileNav(false); }}>12 Stakeholder Pillars</button>
+            <button className={`mobileLink ${publicTab === 'putu-group' ? 'chosen' : ''}`} onClick={() => { setPublicTab('putu-group'); setPublicMobileNav(false); }}>Putu Working Groups (14)</button>
+            <button className={`mobileLink ${publicTab === 'grievance' ? 'chosen' : ''}`} onClick={() => { setPublicTab('grievance'); setPublicMobileNav(false); }}>Public Grievance Desk</button>
+            <button className={`mobileLink ${publicTab === 'workforce' ? 'chosen' : ''}`} onClick={() => { setPublicTab('workforce'); setPublicMobileNav(false); }}>Workforce Talent Pool</button>
+            <Button className="primary" style={{ width: '100%', marginTop: '10px' }} onClick={() => { setViewMode('workspace'); setActiveTab('dashboard'); setPublicMobileNav(false); }}>
+              <LayoutDashboard size={15} /> Enter Council Workspace
+            </Button>
+          </div>
+        )}
 
         {/* PUBLIC CONTENT CONTAINER */}
         <div className="publicContent">
@@ -809,223 +1440,285 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
             </div>
           )}
 
-          {/* HERO SECTION */}
-          <div className="heroWrapper">
-            <div className="heroGrid">
-              {/* Left Column: Title, Subtitle, Sacred Quote, CTAs */}
-              <div className="heroLeft">
-                <div className="heroTag">
-                  <ShieldCheck size={14} />
-                  INDEPENDENT CIVIC STAKEHOLDER PLATFORM
-                </div>
+          {/* TAB 1: HOME */}
+          {publicTab === 'home' && (
+            <>
+              {/* HERO SECTION */}
+              <div className="heroWrapper">
+                <div className="heroGrid">
+                  {/* Left Column: Title, Subtitle, Sacred Quote, CTAs */}
+                  <div className="heroLeft">
+                    <div className="heroTag">
+                      <ShieldCheck size={14} />
+                      INDEPENDENT CIVIC STAKEHOLDER PLATFORM
+                    </div>
 
-                <h1 className="heroTitle">
-                  Grand Gedeh Citizens Development Council
-                </h1>
+                    <h1 className="heroTitle">
+                      Grand Gedeh Citizens Development Council
+                    </h1>
 
-                <div className="heroSubtitle">
-                  One County • One Voice • Shared Development
-                </div>
+                    <div className="heroSubtitle">
+                      One County • One Voice • Shared Development
+                    </div>
 
-                <p className="heroDesc">
-                  A county-centered, nonpartisan platform uniting customary landowners, traditional chiefs, women, youth, professionals, and diaspora partners to safeguard our natural resources, secure genuine community benefits from Putu mining, and build lasting multi-generational prosperity.
-                </p>
+                    <p className="heroDesc">
+                      A county-centered, nonpartisan platform uniting customary landowners, traditional chiefs, women, youth, professionals, and diaspora partners to safeguard our natural resources, secure genuine community benefits from Putu mining, and build lasting multi-generational prosperity.
+                    </p>
 
-                <div className="heroQuote">
-                  "{governingPrinciples.sacredRule}"
-                </div>
+                    <div className="heroQuote">
+                      "{governingPrinciples.sacredRule}"
+                    </div>
 
-                <div className="heroCtas">
-                  <Button
-                    className="primary"
-                    onClick={() => setActiveTab('dashboard')}
-                    style={{ height: '46px', padding: '0 24px', fontSize: '15px', fontWeight: 700 }}
-                  >
-                    <LayoutDashboard size={18} /> Enter Council Command Center
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    onClick={() => { setActiveTab('tools'); setActiveTool('grievance-portal'); }}
-                    style={{ height: '46px', padding: '0 20px', fontSize: '14px', background: '#ffffff15', color: '#fff', borderColor: '#d5ae5980' }}
-                  >
-                    <ShieldAlert size={18} color="#f5d78e" /> Confidential Grievance Portal
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    onClick={() => { setActiveTab('putu-group'); setActiveModuleId('agreements'); }}
-                    style={{ height: '46px', padding: '0 20px', fontSize: '14px', background: '#ffffff10', color: '#e0ece6', borderColor: '#ffffff30' }}
-                  >
-                    <BriefcaseBusiness size={18} /> Putu Working Group
-                  </Button>
-                </div>
-
-                <div className="heroStats">
-                  <div>
-                    <strong>12 Pillars</strong>
-                    <span>Founding Representation</span>
-                  </div>
-                  <div>
-                    <strong>14 Areas</strong>
-                    <span>Putu Working Groups</span>
-                  </div>
-                  <div>
-                    <strong>100% Civic</strong>
-                    <span>Nonpartisan & Independent</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Column: High-Impact Photo Carousel */}
-              <div
-                className="heroRight"
-                onMouseEnter={() => setIsCarouselPlaying(false)}
-                onMouseLeave={() => setIsCarouselPlaying(true)}
-              >
-                <div className="carouselBox">
-                  <div className="carouselImgWrap">
-                    <img
-                      src={activeSlideData.imageUrl}
-                      alt={activeSlideData.alt}
-                      className="carouselImg"
-                    />
-
-                    {/* Top Controls Overlay */}
-                    <div className="carouselControls">
-                      <button
-                        className="carouselBtn"
-                        onClick={() => setIsCarouselPlaying(!isCarouselPlaying)}
-                        aria-label={isCarouselPlaying ? 'Pause Slideshow' : 'Play Slideshow'}
-                        title={isCarouselPlaying ? 'Pause Slideshow' : 'Play Slideshow'}
+                    <div className="heroCtas">
+                      <Button
+                        className="primary"
+                        onClick={() => { setViewMode('workspace'); setActiveTab('dashboard'); }}
+                        style={{ height: '46px', padding: '0 24px', fontSize: '15px', fontWeight: 700 }}
                       >
-                        {isCarouselPlaying ? <Pause size={15} /> : <Play size={15} />}
-                      </button>
-                      <button className="carouselBtn" onClick={prevSlide} aria-label="Previous image">
-                        <ChevronLeft size={18} />
-                      </button>
-                      <button className="carouselBtn" onClick={nextSlide} aria-label="Next image">
-                        <ChevronRight size={18} />
-                      </button>
-                      <div className="carouselCounter">
-                        {currentSlide + 1} / {HERO_SLIDES.length}
+                        <LayoutDashboard size={18} /> Enter Council Command Center
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        onClick={() => setPublicTab('grievance')}
+                        style={{ height: '46px', padding: '0 20px', fontSize: '14px', background: '#ffffff15', color: '#fff', borderColor: '#d5ae5980' }}
+                      >
+                        <ShieldAlert size={18} color="#f5d78e" /> Confidential Grievance Desk
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        onClick={() => { setPublicTab('putu-group'); setActiveModuleId('agreements'); }}
+                        style={{ height: '46px', padding: '0 20px', fontSize: '14px', background: '#ffffff10', color: '#e0ece6', borderColor: '#ffffff30' }}
+                      >
+                        <BriefcaseBusiness size={18} /> Putu Working Groups
+                      </Button>
+                    </div>
+
+                    <div className="heroStats">
+                      <div>
+                        <strong>12 Pillars</strong>
+                        <span>Founding Representation</span>
+                      </div>
+                      <div>
+                        <strong>14 Areas</strong>
+                        <span>Putu Working Groups</span>
+                      </div>
+                      <div>
+                        <strong>100% Civic</strong>
+                        <span>Nonpartisan & Independent</span>
                       </div>
                     </div>
+                  </div>
 
-                    {/* Slide Caption Overlay */}
-                    <div className="carouselOverlay">
-                      <span className="slidePill">{activeSlideData.tag}</span>
-                      <h3 className="slideTitle">{activeSlideData.title}</h3>
-                      <p className="slideCaption">{activeSlideData.caption}</p>
-                    </div>
-
-                    {/* Dot Navigation */}
-                    <div className="carouselDots">
-                      {HERO_SLIDES.map((slide, idx) => (
-                        <button
-                          key={slide.id}
-                          className={`carouselDot ${idx === currentSlide ? 'activeDot' : ''}`}
-                          onClick={() => setCurrentSlide(idx)}
-                          aria-label={`Go to slide ${idx + 1}`}
+                  {/* Right Column: High-Impact Photo Carousel */}
+                  <div
+                    className="heroRight"
+                    onMouseEnter={() => setIsCarouselPlaying(false)}
+                    onMouseLeave={() => setIsCarouselPlaying(true)}
+                  >
+                    <div className="carouselBox">
+                      <div className="carouselImgWrap">
+                        <img
+                          src={activeSlideData.imageUrl}
+                          alt={activeSlideData.alt}
+                          className="carouselImg"
                         />
-                      ))}
+
+                        {/* Top Controls Overlay */}
+                        <div className="carouselControls">
+                          <button
+                            className="carouselBtn"
+                            onClick={() => setIsCarouselPlaying(!isCarouselPlaying)}
+                            aria-label={isCarouselPlaying ? 'Pause Slideshow' : 'Play Slideshow'}
+                            title={isCarouselPlaying ? 'Pause Slideshow' : 'Play Slideshow'}
+                          >
+                            {isCarouselPlaying ? <Pause size={15} /> : <Play size={15} />}
+                          </button>
+                          <button className="carouselBtn" onClick={prevSlide} aria-label="Previous image">
+                            <ChevronLeft size={18} />
+                          </button>
+                          <button className="carouselBtn" onClick={nextSlide} aria-label="Next image">
+                            <ChevronRight size={18} />
+                          </button>
+                          <div className="carouselCounter">
+                            {currentSlide + 1} / {HERO_SLIDES.length}
+                          </div>
+                        </div>
+
+                        {/* Slide Caption Overlay */}
+                        <div className="carouselOverlay">
+                          <span className="slidePill">{activeSlideData.tag}</span>
+                          <h3 className="slideTitle">{activeSlideData.title}</h3>
+                          <p className="slideCaption">{activeSlideData.caption}</p>
+                        </div>
+
+                        {/* Dot Navigation */}
+                        <div className="carouselDots">
+                          {HERO_SLIDES.map((slide, idx) => (
+                            <button
+                              key={slide.id}
+                              className={`carouselDot ${idx === currentSlide ? 'activeDot' : ''}`}
+                              onClick={() => setCurrentSlide(idx)}
+                              aria-label={`Go to slide ${idx + 1}`}
+                            />
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* THREE CORE PILLARS OF THE PLATFORM */}
-          <div className="landingIntro">
-            <div className="landingCard">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-                <div style={{ background: '#eaf4ef', color: '#133e36', padding: '8px', borderRadius: '8px' }}>
-                  <Building2 size={22} />
-                </div>
-                <strong>Tripartite Architecture</strong>
-              </div>
-              <p>
-                Clear distinction: GGCDC is the county-centered civic platform; GGAA provides diaspora technical backup; GGBA gives independent legal expertise; affected customary communities retain direct voices and land rights.
-              </p>
-              <Button variant="outline" size="sm" className="cardBtn" onClick={() => setActiveTab('architecture')}>
-                Explore Architecture <ChevronRight size={14} />
-              </Button>
-            </div>
-
-            <div className="landingCard">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-                <div style={{ background: '#fdf6e8', color: '#976e1a', padding: '8px', borderRadius: '8px' }}>
-                  <Compass size={22} />
-                </div>
-                <strong>Consultative Formation Roadmap</strong>
-              </div>
-              <p>
-                President Edith T. Poah's dispatched emissary is currently in Monrovia facilitating civic dialogues, followed by in-county district townhalls and legal chartering with GGBA toward a formal Constitutional Assembly.
-              </p>
-              <Button variant="outline" size="sm" className="cardBtn" onClick={() => setActiveTab('roadmap')}>
-                View 5-Phase Roadmap <ChevronRight size={14} />
-              </Button>
-            </div>
-
-            <div className="landingCard">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-                <div style={{ background: '#eef2f9', color: '#1b4f8a', padding: '8px', borderRadius: '8px' }}>
-                  <BriefcaseBusiness size={22} />
-                </div>
-                <strong>14 Putu Mining Work Areas</strong>
-              </div>
-              <p>
-                A specialized arm actively tracking MDA clauses, customary boundaries, local hiring quotas, environmental water testing, corridor rail multi-user access, and community development funds.
-              </p>
-              <Button variant="outline" size="sm" className="cardBtn" onClick={() => setActiveTab('putu-group')}>
-                Browse Work Areas <ChevronRight size={14} />
-              </Button>
-            </div>
-          </div>
-
-          {/* QUICK FEATURE HIGHLIGHT: 14 PUTU MODULES */}
-          <div style={{ background: '#fff', border: '1px solid #dce5e0', borderRadius: '14px', padding: '32px', marginBottom: '36px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '22px', flexWrap: 'wrap', gap: '12px' }}>
-              <div>
-                <h2 style={{ font: '700 24px Georgia', margin: 0, color: '#133e36' }}>
-                  Putu Mining & Development Working Group
-                </h2>
-                <p style={{ margin: '4px 0 0', color: '#687d74', fontSize: '14px' }}>
-                  Fourteen interconnected operational areas tracking commitments, safeguards, and citizen benefits.
-                </p>
-              </div>
-              <Button className="primary" onClick={() => setActiveTab('dashboard')}>
-                Enter Council Workspace ({records.length} records)
-              </Button>
-            </div>
-
-            <div className="moduleGrid">
-              {modules.map((m) => {
-                const Icon = moduleIcons[m.id] || FileText;
-                return (
-                  <button
-                    key={m.id}
-                    className="moduleCard"
-                    onClick={() => {
-                      setActiveTab('putu-group');
-                      setActiveModuleId(m.id);
-                    }}
-                  >
-                    <div className="moduleIcon">
-                      <Icon size={21} />
+              {/* THREE CORE PILLARS OF THE PLATFORM */}
+              <div className="landingIntro">
+                <div className="landingCard">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                    <div style={{ background: '#eaf4ef', color: '#133e36', padding: '8px', borderRadius: '8px' }}>
+                      <Building2 size={22} />
                     </div>
-                    <div>
-                      <strong>{m.name}</strong>
-                      <p>{m.description}</p>
+                    <strong>Tripartite Architecture</strong>
+                  </div>
+                  <p>
+                    Clear distinction: GGCDC is the county-centered civic platform; GGAA provides diaspora technical backup; GGBA gives independent legal expertise; affected customary communities retain direct voices and land rights.
+                  </p>
+                  <Button variant="outline" size="sm" className="cardBtn" onClick={() => setPublicTab('architecture')}>
+                    Explore Architecture <ChevronRight size={14} />
+                  </Button>
+                </div>
+
+                <div className="landingCard">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                    <div style={{ background: '#fdf6e8', color: '#976e1a', padding: '8px', borderRadius: '8px' }}>
+                      <Compass size={22} />
                     </div>
-                    <span>{moduleCounts[m.id] || 0}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+                    <strong>Consultative Formation Roadmap</strong>
+                  </div>
+                  <p>
+                    President Edith T. Poah's dispatched emissary is currently in Monrovia facilitating civic dialogues, followed by in-county district townhalls and legal chartering with GGBA toward a formal Constitutional Assembly.
+                  </p>
+                  <Button variant="outline" size="sm" className="cardBtn" onClick={() => setPublicTab('roadmap')}>
+                    View 5-Phase Roadmap <ChevronRight size={14} />
+                  </Button>
+                </div>
+
+                <div className="landingCard">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                    <div style={{ background: '#eef2f9', color: '#1b4f8a', padding: '8px', borderRadius: '8px' }}>
+                      <BriefcaseBusiness size={22} />
+                    </div>
+                    <strong>14 Putu Mining Work Areas</strong>
+                  </div>
+                  <p>
+                    A specialized arm actively tracking MDA clauses, customary boundaries, local hiring quotas, environmental water testing, corridor rail multi-user access, and community development funds.
+                  </p>
+                  <Button variant="outline" size="sm" className="cardBtn" onClick={() => { setPublicTab('putu-group'); setActiveModuleId('agreements'); }}>
+                    Browse Work Areas <ChevronRight size={14} />
+                  </Button>
+                </div>
+              </div>
+
+              {/* QUICK FEATURE HIGHLIGHT: 14 PUTU MODULES */}
+              <div style={{ background: '#fff', border: '1px solid #dce5e0', borderRadius: '14px', padding: '32px', marginBottom: '36px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '22px', flexWrap: 'wrap', gap: '12px' }}>
+                  <div>
+                    <h2 style={{ font: '700 24px Georgia', margin: 0, color: '#133e36' }}>
+                      Putu Mining & Development Working Group
+                    </h2>
+                    <p style={{ margin: '4px 0 0', color: '#687d74', fontSize: '14px' }}>
+                      Fourteen interconnected operational areas tracking commitments, safeguards, and citizen benefits.
+                    </p>
+                  </div>
+                  <Button className="primary" onClick={() => { setViewMode('workspace'); setActiveTab('dashboard'); }}>
+                    Enter Council Workspace ({records.length} records)
+                  </Button>
+                </div>
+
+                <div className="moduleGrid">
+                  {modules.map((m) => {
+                    const Icon = moduleIcons[m.id] || FileText;
+                    return (
+                      <button
+                        key={m.id}
+                        className="moduleCard"
+                        onClick={() => {
+                          setPublicTab('putu-group');
+                          setActiveModuleId(m.id);
+                        }}
+                      >
+                        <div className="moduleIcon">
+                          <Icon size={21} />
+                        </div>
+                        <div>
+                          <strong>{m.name}</strong>
+                          <p>{m.description}</p>
+                        </div>
+                        <span>{moduleCounts[m.id] || 0}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* TAB 2: ARCHITECTURE */}
+          {publicTab === 'architecture' && renderArchitectureContent()}
+
+          {/* TAB 3: ROADMAP */}
+          {publicTab === 'roadmap' && renderRoadmapContent()}
+
+          {/* TAB 4: PILLARS */}
+          {publicTab === 'pillars' && renderPillarsContent()}
+
+          {/* TAB 5: PUTU WORKING GROUPS DIRECTORY */}
+          {publicTab === 'putu-group' && renderPublicPutuGroupContent()}
+
+          {/* TAB 6: GRIEVANCE DESK */}
+          {publicTab === 'grievance' && renderPublicGrievanceContent()}
+
+          {/* TAB 7: WORKFORCE MATCHER */}
+          {publicTab === 'workforce' && renderPublicWorkforceContent()}
         </div>
+
+        {/* PUBLIC FOOTER */}
+        <footer className="publicFooter">
+          <div className="publicFooterInner">
+            <div className="publicFooterTop">
+              <div className="publicFooterBrand">
+                <strong>Grand Gedeh Citizens Development Council (GGCDC)</strong>
+                <p>
+                  A nonpartisan, county-centered platform uniting customary communities, traditional elders, women, youth, professionals, and diaspora partners to advocate for Grand Gedeh's natural resources and ensure genuine community benefits.
+                </p>
+                <div className="publicFooterQuote">
+                  "{governingPrinciples.sacredRule}"
+                </div>
+              </div>
+              <div className="publicFooterCol">
+                <strong>Institutional Tripartite Pillars</strong>
+                <ul>
+                  <li><strong>Foundation:</strong> In-County Landowners & Elders</li>
+                  <li><strong>Facilitator:</strong> GGAA Dispatched Emissary</li>
+                  <li><strong>Legal Oversight:</strong> Grand Gedeh Bar Association (GGBA)</li>
+                  <li><strong>Technical Partner:</strong> Grand Gedeh Association in the Americas (GGAA)</li>
+                </ul>
+              </div>
+              <div className="publicFooterCol">
+                <strong>Public Access & Portals</strong>
+                <ul>
+                  <li><button onClick={() => setPublicTab('grievance')} style={{ background: 'none', border: 'none', color: '#cbdcd4', cursor: 'pointer', padding: 0, textAlign: 'left', font: 'inherit' }}>Confidential Grievance Portal</button></li>
+                  <li><button onClick={() => setPublicTab('workforce')} style={{ background: 'none', border: 'none', color: '#cbdcd4', cursor: 'pointer', padding: 0, textAlign: 'left', font: 'inherit' }}>Workforce Talent Matcher</button></li>
+                  <li><button onClick={() => setPublicTab('roadmap')} style={{ background: 'none', border: 'none', color: '#cbdcd4', cursor: 'pointer', padding: 0, textAlign: 'left', font: 'inherit' }}>5-Phase Formation Roadmap</button></li>
+                  <li><button onClick={() => { setViewMode('workspace'); setActiveTab('dashboard'); }} style={{ background: 'none', border: 'none', color: '#f3d999', cursor: 'pointer', padding: 0, textAlign: 'left', fontWeight: 'bold', font: 'inherit' }}>Council Member Login →</button></li>
+                </ul>
+              </div>
+            </div>
+            <div className="publicFooterBottom">
+              <div>© {new Date().getFullYear()} Grand Gedeh Citizens Development Council. All rights reserved.</div>
+              <div style={{ color: '#d5ae59', fontWeight: 600 }}>One County • One Voice • Shared Development</div>
+            </div>
+          </div>
+        </footer>
       </div>
     );
   }
@@ -1051,7 +1744,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
         {/* Exit back to Public Portal Button */}
         <div style={{ padding: '12px 14px', borderBottom: '1px solid #ffffff15' }}>
           <button
-            onClick={() => { setActiveTab('home'); setMobileMenuOpen(false); }}
+            onClick={() => { setViewMode('public'); setPublicTab('home'); setMobileMenuOpen(false); }}
             style={{
               width: '100%',
               display: 'flex',
@@ -1176,7 +1869,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
           </div>
 
           <div className="topRight">
-            <Button variant="outline" size="sm" onClick={() => setActiveTab('home')} style={{ fontSize: '12px', height: '32px' }}>
+            <Button variant="outline" size="sm" onClick={() => { setViewMode('public'); setPublicTab('home'); }} style={{ fontSize: '12px', height: '32px' }}>
               <ArrowLeft size={14} /> Public Portal
             </Button>
 
@@ -1410,267 +2103,13 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
           )}
 
           {/* VIEW: 3. INSTITUTIONAL ARCHITECTURE */}
-          {activeTab === 'architecture' && (
-            <div>
-              <div className="heading">
-                <div>
-                  <div className="eyebrow">STRATEGIC GOVERNANCE ARCHITECTURE</div>
-                  <h1>Independent County Stakeholder Platform</h1>
-                  <p>
-                    Why GGCDC is designed as an independent, county-centered platform rather than a diaspora branch, statutory authority, or political movement.
-                  </p>
-                </div>
-              </div>
-
-              {/* FLOWCHART / ARCHITECTURE VISUALIZATION */}
-              <div style={{ background: '#fff', border: '1px solid #dce5e0', borderRadius: '14px', padding: '32px', marginBottom: '32px', boxShadow: '0 4px 16px #10352f08' }}>
-                <h3 style={{ font: '700 20px Georgia', margin: '0 0 20px', color: '#10352f', textAlign: 'center' }}>
-                  Grand Gedeh Institutional Tripartite Arrangement
-                </h3>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', alignItems: 'stretch' }}>
-                  {/* Pillar 1: Sovereign Foundation */}
-                  <div style={{ border: '2px solid #2e7d32', borderRadius: '12px', background: '#f4fbf5', padding: '20px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                      <div style={{ background: '#2e7d32', color: '#fff', padding: '6px 10px', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px' }}>
-                        FOUNDATION
-                      </div>
-                      <strong style={{ fontSize: '16px', color: '#1b5e20' }}>In-County Citizens & Communities</strong>
-                    </div>
-                    <ul style={{ fontSize: '13px', color: '#2e4d34', lineHeight: 1.6, paddingLeft: '18px', margin: 0 }}>
-                      <li>Customary Landowners & Clans (Jarwodee, Pennoken, Tiama, Konobo)</li>
-                      <li>Traditional Chiefs & Council of Elders</li>
-                      <li>Rural Women Networks & Youth Associations</li>
-                      <li>Persons with Disabilities & Local Artisans</li>
-                      <li>Retain sacred land rights and direct veto under Land Rights Act</li>
-                    </ul>
-                  </div>
-
-                  {/* Pillar 2: The Civic Stakeholder Platform (GGCDC) */}
-                  <div style={{ border: '3px solid #14493e', borderRadius: '12px', background: '#ebf4f1', padding: '20px', position: 'relative' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                      <div style={{ background: '#14493e', color: '#d5ae59', padding: '6px 10px', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px' }}>
-                        CIVIC VEHICLE
-                      </div>
-                      <strong style={{ fontSize: '17px', color: '#10352f' }}>GGCDC (The Council)</strong>
-                    </div>
-                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#1d5a4d', margin: '0 0 10px' }}>
-                      "One County • One Voice • Shared Development"
-                    </p>
-                    <ul style={{ fontSize: '13px', color: '#274b42', lineHeight: 1.6, paddingLeft: '18px', margin: 0 }}>
-                      <li>County-centered, independent & nonpartisan</li>
-                      <li>Structured citizen coordination & evidence aggregation</li>
-                      <li>Operates the specialized Putu Mining Working Group (14 focus areas)</li>
-                      <li>Does NOT negotiate mineral rights (belonging to GoL)</li>
-                      <li>Does NOT claim statutory powers (unlike a statutory Authority)</li>
-                    </ul>
-                  </div>
-
-                  {/* Pillar 3: External Counterparties */}
-                  <div style={{ border: '2px solid #b76e00', borderRadius: '12px', background: '#fdfaf2', padding: '20px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                      <div style={{ background: '#b76e00', color: '#fff', padding: '6px 10px', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px' }}>
-                        EXTERNAL PARTIES
-                      </div>
-                      <strong style={{ fontSize: '16px', color: '#7a4a00' }}>Structured Engagement</strong>
-                    </div>
-                    <ul style={{ fontSize: '13px', color: '#68450d', lineHeight: 1.6, paddingLeft: '18px', margin: 0 }}>
-                      <li><strong>Government of Liberia:</strong> Statutory mineral authority, regulatory permits (EPA), and fiscal revenue collection.</li>
-                      <li><strong>Putu Mining Investor / Concessionaire:</strong> Capital investment, mine construction, operational compliance.</li>
-                      <li>GGCDC engages these parties through formal consultative advocacy, monitoring, and legal dialogue.</li>
-                    </ul>
-                  </div>
-                </div>
-
-                {/* Technical Support Tier */}
-                <div style={{ marginTop: '24px', padding: '18px 24px', background: '#f8faf9', border: '1px dashed #7ea395', borderRadius: '10px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                    <ShieldCheck size={20} color="#1b5e20" />
-                    <strong style={{ color: '#133e36', fontSize: '15px' }}>
-                      Technical, Legal & Diaspora Support Backbone:
-                    </strong>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', fontSize: '13px', color: '#38554c' }}>
-                    <div>
-                      <strong>Grand Gedeh Association in the Americas (GGAA):</strong> Strategic diaspora partner mobilizing engineers, accountants, environmental scientists, and international advocacy. Supports without controlling or claiming to speak over in-county residents.
-                    </div>
-                    <div>
-                      <strong>Grand Gedeh Bar Association (GGBA):</strong> Provides independent legal counsel, reviews MDA clauses, drafts charter covenants, and enforces community land rights and anti-conflict of interest rules.
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* COMPARATIVE ANALYSIS CARDS */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px' }}>
-                <div style={{ background: '#fff', border: '1px solid #dce5e0', borderRadius: '12px', padding: '24px' }}>
-                  <h4 style={{ font: '700 18px Georgia', margin: '0 0 12px', color: '#133e36' }}>
-                    Why "Citizens Development Council"?
-                  </h4>
-                  <p style={{ fontSize: '14px', color: '#556961', lineHeight: 1.6, margin: '0 0 12px' }}>
-                    The name communicates enduring legitimacy. It is broader than mining, broader than GGAA, and broader than any particular political administration or single investor.
-                  </p>
-                  <ul style={{ fontSize: '13px', color: '#455952', lineHeight: 1.6, paddingLeft: '18px', margin: 0 }}>
-                    <li><strong>Avoids "Authority":</strong> Does not imply statutory governmental powers or attempt to supplant elected county administration or ministries.</li>
-                    <li><strong>Avoids "People's Council":</strong> Prevents confusion with partisan political movements.</li>
-                    <li><strong>Avoids "Putu Committee":</strong> Ensures the institution remains relevant long after Putu, addressing forestry, agriculture, corridor roads, and future concessions.</li>
-                  </ul>
-                </div>
-
-                <div style={{ background: '#fff', border: '1px solid #dce5e0', borderRadius: '12px', padding: '24px' }}>
-                  <h4 style={{ font: '700 18px Georgia', margin: '0 0 12px', color: '#133e36' }}>
-                    Role of President Poah's Dispatched Emissary
-                  </h4>
-                  <p style={{ fontSize: '14px', color: '#556961', lineHeight: 1.6, margin: '0 0 12px' }}>
-                    President Edith T. Poah dispatched an emissary to Monrovia to facilitate dialogue rather than arrive as a predetermined chairman.
-                  </p>
-                  <ul style={{ fontSize: '13px', color: '#455952', lineHeight: 1.6, paddingLeft: '18px', margin: 0 }}>
-                    <li>Serves as a <strong>GGAA Liaison & Consultative Facilitator</strong>.</li>
-                    <li>Coordinates with Monrovia-based Grand Gedeh elders, student unions, and professionals.</li>
-                    <li>Engages GGBA to draft independent legal bylaws.</li>
-                    <li>Facilitates the creation of the in-county platform where legitimacy is earned through open consultative formation in Grand Gedeh.</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          )}
+          {activeTab === 'architecture' && renderArchitectureContent()}
 
           {/* VIEW: 4. CONSULTATIVE FORMATION ROADMAP */}
-          {activeTab === 'roadmap' && (
-            <div>
-              <div className="heading">
-                <div>
-                  <div className="eyebrow">FORMATION PROCESS & DIALOGUE MILESTONES</div>
-                  <h1>Consultative Formation Roadmap</h1>
-                  <p>
-                    Tracking the 5-phase civic roadmap from Monrovia preliminary outreach to the Grand Gedeh Stakeholder Constitutional Assembly.
-                  </p>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                {consultativeRoadmap.map((phase) => (
-                  <div
-                    key={phase.phase}
-                    style={{
-                      background: '#fff',
-                      border: '1px solid #dce5e0',
-                      borderRadius: '12px',
-                      padding: '24px 28px',
-                      display: 'grid',
-                      gridTemplateColumns: '60px 1fr 240px',
-                      gap: '24px',
-                      alignItems: 'start'
-                    }}
-                  >
-                    <div style={{
-                      width: '50px',
-                      height: '50px',
-                      borderRadius: '50%',
-                      background: phase.status === 'Completed' ? '#e1f4e7' : phase.status === 'In progress' ? '#14493e' : '#f0f4f2',
-                      color: phase.status === 'Completed' ? '#21653b' : phase.status === 'In progress' ? '#fff' : '#698075',
-                      display: 'grid',
-                      placeItems: 'center',
-                      font: '700 20px Georgia'
-                    }}>
-                      {phase.phase}
-                    </div>
-
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                        <h3 style={{ font: '700 20px Georgia', margin: 0, color: '#133e36' }}>
-                          {phase.title}
-                        </h3>
-                        <span className={`status ${phase.status.toLowerCase().replaceAll(' ', '-')}`}>
-                          {phase.status}
-                        </span>
-                      </div>
-                      <p style={{ fontSize: '14px', color: '#5b6e66', lineHeight: 1.55, margin: '0 0 14px' }}>
-                        {phase.description}
-                      </p>
-                      <div>
-                        <strong style={{ fontSize: '13px', color: '#1b493e', display: 'block', marginBottom: '6px' }}>
-                          Key Consultative Milestones:
-                        </strong>
-                        <ul style={{ fontSize: '13px', color: '#3d5249', lineHeight: 1.6, paddingLeft: '18px', margin: 0 }}>
-                          {phase.keyMilestones.map((m, idx) => (
-                            <li key={idx}>{m}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-
-                    <div style={{ background: '#f7faf8', padding: '16px', borderRadius: '8px', border: '1px solid #e1ebe5', fontSize: '13px' }}>
-                      <span style={{ color: '#7a8c84', fontSize: '11px', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>
-                        LEAD FACILITATOR
-                      </span>
-                      <strong style={{ display: 'block', color: '#1b473c', margin: '4px 0 12px' }}>
-                        {phase.leadEntity}
-                      </strong>
-                      <span style={{ color: '#7a8c84', fontSize: '11px', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>
-                        TIMELINE
-                      </span>
-                      <strong style={{ display: 'block', color: '#1b473c', marginTop: '4px' }}>
-                        {phase.timeline}
-                      </strong>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {activeTab === 'roadmap' && renderRoadmapContent()}
 
           {/* VIEW: 5. 12 STAKEHOLDER PILLARS */}
-          {activeTab === 'pillars' && (
-            <div>
-              <div className="heading">
-                <div>
-                  <div className="eyebrow">FOUNDING REPRESENTATION STRUCTURE</div>
-                  <h1>The 12 Founding Stakeholder Pillars</h1>
-                  <p>
-                    Ensuring broad, balanced, and legitimate representation across customary landholders, women, youth, traditional chiefs, professionals, and diaspora partners.
-                  </p>
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '18px' }}>
-                {stakeholderPillars.map((p) => (
-                  <div
-                    key={p.id}
-                    style={{
-                      background: '#fff',
-                      border: '1px solid #dce5e0',
-                      borderRadius: '12px',
-                      padding: '22px 24px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '10px'
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <span style={{ fontSize: '11px', fontWeight: 800, color: '#976e1a', background: '#fcf6e8', padding: '4px 8px', borderRadius: '4px', letterSpacing: '0.05em' }}>
-                        {p.category}
-                      </span>
-                      <span style={{ fontSize: '12px', fontWeight: 700, color: '#1d5a4d', background: '#eaf4f0', padding: '4px 8px', borderRadius: '4px' }}>
-                        {p.seatAllocation}
-                      </span>
-                    </div>
-
-                    <h3 style={{ font: '700 18px Georgia', margin: 0, color: '#123e37' }}>
-                      {p.name}
-                    </h3>
-                    <p style={{ fontSize: '13px', color: '#556960', lineHeight: 1.5, margin: 0 }}>
-                      {p.description}
-                    </p>
-
-                    <div style={{ marginTop: 'auto', paddingTop: '10px', borderTop: '1px solid #edf2ef', fontSize: '12px', color: '#3d5248' }}>
-                      <strong>Key Stakeholders:</strong> {p.leadStakeholders}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {activeTab === 'pillars' && renderPillarsContent()}
 
           {/* VIEW: 6. SPECIALIZED TOOLS */}
           {activeTab === 'tools' && (

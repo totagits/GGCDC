@@ -79,15 +79,34 @@
 .roleNotice{display:flex;align-items:center;justify-content:space-between;background:#f0f5f2;border:1px solid #d3e2d9;border-radius:8px;padding:12px 18px;margin-bottom:20px;font-size:13px;color:#284c40}
 .roleNotice strong{color:#11382f}
 
+.publicMobileToggle{display:none;background:none;border:1px solid #c8d6cf;padding:6px;border-radius:6px;color:#14493e;cursor:pointer}
+.publicMobileDrawer{background:#fff;border-bottom:1px solid #dfe7e2;padding:16px 24px;display:flex;flex-direction:column;gap:8px;box-shadow:0 8px 24px #10352f15}
+.publicMobileDrawer .mobileLink{background:none;border:none;text-align:left;padding:10px 12px;font-size:15px;font-weight:600;color:#284c40;border-radius:6px;cursor:pointer}
+.publicMobileDrawer .mobileLink.chosen{background:#eaf4f0;color:#14493e;font-weight:700}
+.publicFooter{margin-top:auto;background:#10352f;color:#e1eee8;padding:48px 48px 36px;border-top:1px solid #1e4f45}
+.publicFooterInner{max-width:1450px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+.publicFooterTop{display:grid;grid-template-columns:2fr 1fr 1fr;gap:40px}
+.publicFooterBrand strong{font:700 20px Georgia;color:#fff;display:block;margin-bottom:6px}
+.publicFooterBrand p{color:#b7cfc5;font-size:14px;line-height:1.6;margin:0 0 14px;max-width:550px}
+.publicFooterQuote{font-style:italic;color:#f3d999;font-size:13px;border-left:2px solid #d5ae59;padding-left:12px;margin:12px 0 0}
+.publicFooterCol strong{color:#d5ae59;font-size:13px;text-transform:uppercase;letter-spacing:0.08em;display:block;margin-bottom:12px}
+.publicFooterCol ul{list-style:none;padding:0;margin:0;font-size:13px;color:#cbdcd4;display:flex;flex-direction:column;gap:8px}
+.publicFooterCol ul li{line-height:1.4}
+.publicFooterBottom{border-top:1px solid #ffffff1a;padding-top:20px;display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#8faaa0;flex-wrap:wrap;gap:12px}
+
 @media(max-width:1024px){
   .publicNavbar{padding:0 24px}
   .publicContent{padding:30px 24px 60px}
   .publicNavLinks{display:none}
+  .publicMobileToggle{display:block}
+  .publicFooterTop{grid-template-columns:1fr;gap:24px}
+  .publicFooter{padding:36px 24px 28px}
 }
 @media(max-width:640px){
   .publicNavbar{padding:0 16px;height:68px}
   .publicBrand strong{font-size:17px}
   .publicBrand small{display:none}
   .publicContent{padding:20px 16px 50px}
+  .publicFooter{padding:28px 16px 24px}
 }
 
