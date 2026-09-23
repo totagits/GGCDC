@@ -52,3 +52,42 @@
   .heroStats{grid-template-columns:1fr;gap:12px}
   .carouselBox{height:300px}
 }
+
+/* PUBLIC SITE LAYOUT & NAVBAR */
+.publicShell{min-height:100vh;display:flex;flex-direction:column;background:#f5f7f6}
+.publicNavbar{position:sticky;top:0;z-index:40;background:#fffffffa;backdrop-filter:blur(10px);border-bottom:1px solid #dfe7e2;height:76px;display:flex;align-items:center;justify-content:space-between;padding:0 48px}
+.publicBrand{display:flex;align-items:center;gap:12px;text-decoration:none;cursor:pointer}
+.publicBrand .seal{height:42px;width:42px;border:2px solid #14493e;color:#14493e;background:#eaf4f0}
+.publicBrand strong{font:700 20px Georgia,serif;color:#10352f;line-height:1.1}
+.publicBrand small{display:block;font-size:12px;color:#5f786d;font-weight:600}
+.publicNavLinks{display:flex;align-items:center;gap:26px}
+.publicNavLink{background:none;border:0;color:#355347;font-size:14px;font-weight:600;padding:6px 2px;cursor:pointer;position:relative;transition:color .15s}
+.publicNavLink:hover{color:#14493e}
+.publicNavLink.activeNavLink{color:#14493e;font-weight:700}
+.publicNavLink.activeNavLink::after{content:'';position:absolute;bottom:-4px;left:0;right:0;height:2px;background:#d5ae59;border-radius:2px}
+.publicNavActions{display:flex;align-items:center;gap:16px}
+.publicContent{max-width:1450px;width:100%;margin:0 auto;padding:40px 48px 80px;box-sizing:border-box}
+
+/* RBAC BADGES & HIGHLIGHTS */
+.rbacTag{font-size:11px;font-weight:800;letter-spacing:.06em;padding:4px 8px;border-radius:4px;text-transform:uppercase}
+.rbacTag.admin{background:#fde8e8;color:#9b1c1c}
+.rbacTag.legal{background:#e1effe;color:#1e429f}
+.rbacTag.technical{background:#e3f2fd;color:#0b4f8a}
+.rbacTag.community{background:#def7ec;color:#03543f}
+.rbacTag.observer{background:#f3f4f6;color:#4b5563}
+
+.roleNotice{display:flex;align-items:center;justify-content:space-between;background:#f0f5f2;border:1px solid #d3e2d9;border-radius:8px;padding:12px 18px;margin-bottom:20px;font-size:13px;color:#284c40}
+.roleNotice strong{color:#11382f}
+
+@media(max-width:1024px){
+  .publicNavbar{padding:0 24px}
+  .publicContent{padding:30px 24px 60px}
+  .publicNavLinks{display:none}
+}
+@media(max-width:640px){
+  .publicNavbar{padding:0 16px;height:68px}
+  .publicBrand strong{font-size:17px}
+  .publicBrand small{display:none}
+  .publicContent{padding:20px 16px 50px}
+}
+

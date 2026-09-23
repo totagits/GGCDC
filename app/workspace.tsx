@@ -64,7 +64,11 @@ import {
   ShieldAlert,
   Send,
   Play,
-  Pause
+  Pause,
+  Lock,
+  Unlock,
+  LogOut,
+  ArrowLeft
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -101,13 +105,99 @@ const blankForm = (moduleId: string) => ({
   details: {} as Record<string, string>
 });
 
-const ROLES = [
-  { id: 'emissary', name: 'GGAA Emissary / Secretariat Facilitator', badge: 'Facilitator' },
-  { id: 'ggaa', name: 'GGAA Diaspora Technical Advisor', badge: 'Technical Partner' },
-  { id: 'ggba', name: 'GGBA Legal Counsel & Oversight', badge: 'Legal Advisor' },
-  { id: 'landowner', name: 'Putu Customary Landowner Delegate', badge: 'Affected Community' },
-  { id: 'environment', name: 'Environmental & Safeguards Specialist', badge: 'HSE Monitor' },
-  { id: 'citizen', name: 'Grand Gedeh Citizen / Civic Delegate', badge: 'Public Stakeholder' }
+export interface RoleDef {
+  id: string;
+  name: string;
+  badge: string;
+  type: 'admin' | 'legal' | 'technical' | 'community' | 'observer';
+  canCreate: boolean;
+  canEdit: boolean;
+  canLink: boolean;
+  canManageData: boolean;
+  canAccessRestricted: boolean;
+  primaryModules: string[];
+  description: string;
+}
+
+const ROLES: RoleDef[] = [
+  {
+    id: 'emissary',
+    name: 'GGAA Emissary / Secretariat Facilitator',
+    badge: 'Secretariat Admin',
+    type: 'admin',
+    canCreate: true,
+    canEdit: true,
+    canLink: true,
+    canManageData: true,
+    canAccessRestricted: true,
+    primaryModules: ['agreements', 'governance', 'transparency', 'monitoring', 'benefits'],
+    description: 'Full administrative rights to coordinate multi-stakeholder consultations, draft resolutions, and manage all 14 working group records.'
+  },
+  {
+    id: 'ggba',
+    name: 'GGBA Legal Counsel & Oversight',
+    badge: 'Legal Oversight',
+    type: 'legal',
+    canCreate: true,
+    canEdit: true,
+    canLink: true,
+    canManageData: false,
+    canAccessRestricted: true,
+    primaryModules: ['agreements', 'land', 'grievances', 'governance'],
+    description: 'Statutory and customary legal review, contract clause analysis, grievance mediation, and human rights defense.'
+  },
+  {
+    id: 'ggaa',
+    name: 'GGAA Diaspora Technical Advisor',
+    badge: 'Technical Partner',
+    type: 'technical',
+    canCreate: true,
+    canEdit: true,
+    canLink: true,
+    canManageData: false,
+    canAccessRestricted: false,
+    primaryModules: ['environment', 'infrastructure', 'skills', 'procurement', 'monitoring'],
+    description: 'Engineering, geotechnical, economic modeling, and environmental technical reviews without in-county political control.'
+  },
+  {
+    id: 'landowner',
+    name: 'Putu Customary Landowner Delegate',
+    badge: 'Affected Landowner',
+    type: 'community',
+    canCreate: true,
+    canEdit: false,
+    canLink: false,
+    canManageData: false,
+    canAccessRestricted: false,
+    primaryModules: ['land', 'benefits', 'grievances', 'environment'],
+    description: 'Direct host community voice defending customary parcel demarcations, resettlement action plans, and sacred grove protections.'
+  },
+  {
+    id: 'environment',
+    name: 'Environmental & Safeguards Officer',
+    badge: 'HSE Monitor',
+    type: 'technical',
+    canCreate: true,
+    canEdit: true,
+    canLink: true,
+    canManageData: false,
+    canAccessRestricted: false,
+    primaryModules: ['environment', 'infrastructure', 'monitoring'],
+    description: 'Specialized oversight of tailings dam stability (GISTM), monthly watershed testing, and air/dust suppression compliance.'
+  },
+  {
+    id: 'citizen',
+    name: 'Grand Gedeh Citizen / Public Stakeholder',
+    badge: 'Public Observer',
+    type: 'observer',
+    canCreate: false,
+    canEdit: false,
+    canLink: false,
+    canManageData: false,
+    canAccessRestricted: false,
+    primaryModules: ['transparency', 'benefits', 'employment', 'workforce'],
+    description: 'General civic transparency access (read-only observer in council workspace, with direct access to public grievance & workforce portals).'
+  }
 ];
 
 // 8 Curated Photos for Hero Carousel
@@ -179,7 +269,7 @@ const HERO_SLIDES = [
 ];
 
 export default function Workspace({ user: initialUser }: { user?: string }) {
-  // Navigation State - defaults to 'home' landing page
+  // Navigation State - 'home' is the public portal; other tabs represent the Council Workspace
   const [activeTab, setActiveTab] = useState<'home' | 'dashboard' | 'putu-group' | 'architecture' | 'roadmap' | 'pillars' | 'tools'>('home');
   const [activeModuleId, setActiveModuleId] = useState<string>('agreements');
   const [activeTool, setActiveTool] = useState<'matcher' | 'explorer' | 'grievance-portal' | 'charter' | 'backup'>('matcher');
@@ -210,9 +300,9 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
   const [targetLinkId, setTargetLinkId] = useState('');
   const [relationText, setRelationText] = useState('Supports');
   
-  // Shell UI State
+  // Shell UI & RBAC State
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [currentRole, setCurrentRole] = useState(ROLES[0]);
+  const [currentRole, setCurrentRole] = useState<RoleDef>(ROLES[0]);
   
   // Tool: Workforce Matcher
   const [matcherTrade, setMatcherTrade] = useState('All');
@@ -279,25 +369,48 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
     loadData();
   }, []);
 
-  // Filtered Records
+  // Filtered Records (with RBAC confidentiality redactions for observers)
   const filteredRecords = useMemo(() => {
-    return records.filter(r => {
-      const matchModule = activeTab === 'putu-group' ? r.module === activeModuleId : true;
-      const matchStatus = statusFilter === 'All' || r.status === statusFilter;
-      const matchCounty = countyFilter === 'All' || r.county === countyFilter;
-      const searchLower = search.toLowerCase();
-      const matchSearch = !search || [
-        r.title,
-        r.summary,
-        r.community,
-        r.county,
-        r.owner,
-        r.details
-      ].some(val => String(val || '').toLowerCase().includes(searchLower));
+    return records
+      .map(r => {
+        // Observers / non-authorized roles cannot view private whistleblower details
+        if (r.module === 'grievances' && !currentRole.canAccessRestricted) {
+          let detailsObj: any = {};
+          try { detailsObj = JSON.parse(r.details || '{}'); } catch {}
+          if (detailsObj.confidentiality === 'Restricted') {
+            return {
+              ...r,
+              summary: '[Restricted Confidential Grievance - Access restricted to GGBA Legal Counsel & Ethics Panel]',
+              owner: 'Ethics Panel (Protected)',
+              details: JSON.stringify({
+                category: detailsObj.category,
+                channel: detailsObj.channel,
+                confidentiality: 'Restricted',
+                response: 'Case under formal investigation by GGBA & Ethics Panel.',
+                claimantContact: '[Redacted Whistleblower Identity]'
+              })
+            };
+          }
+        }
+        return r;
+      })
+      .filter(r => {
+        const matchModule = activeTab === 'putu-group' ? r.module === activeModuleId : true;
+        const matchStatus = statusFilter === 'All' || r.status === statusFilter;
+        const matchCounty = countyFilter === 'All' || r.county === countyFilter;
+        const searchLower = search.toLowerCase();
+        const matchSearch = !search || [
+          r.title,
+          r.summary,
+          r.community,
+          r.county,
+          r.owner,
+          r.details
+        ].some(val => String(val || '').toLowerCase().includes(searchLower));
 
-      return matchModule && matchStatus && matchCounty && matchSearch;
-    });
-  }, [records, activeTab, activeModuleId, statusFilter, countyFilter, search]);
+        return matchModule && matchStatus && matchCounty && matchSearch;
+      });
+  }, [records, activeTab, activeModuleId, statusFilter, countyFilter, search, currentRole]);
 
   // Counts by module
   const moduleCounts = useMemo(() => {
@@ -312,8 +425,12 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
   const currentModule = modules.find(m => m.id === activeModuleId) || modules[0];
   const formModule = modules.find(m => m.id === form.module) || modules[0];
 
-  // Open modal for new record
+  // Open modal for new record (RBAC checked)
   const handleOpenNew = (defaultModule?: string) => {
+    if (!currentRole.canCreate) {
+      setError(`Your current persona (${currentRole.name}) has Read-Only Observer status. To log complaints, use the Public Grievance Portal.`);
+      return;
+    }
     setEditing(null);
     setForm(blankForm(defaultModule || (activeTab === 'putu-group' ? activeModuleId : 'agreements')));
     setTargetLinkId('');
@@ -348,6 +465,14 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
 
   // Save record (API or Local Storage)
   async function handleSaveRecord() {
+    if (!currentRole.canCreate && !editing) {
+      setError('Permission Denied: Your role does not have permission to create records.');
+      return;
+    }
+    if (editing && !currentRole.canEdit) {
+      setError('Permission Denied: Your role does not have authorization to edit official records.');
+      return;
+    }
     if (!form.title.trim()) {
       setError('Please enter a specific record title');
       return;
@@ -422,6 +547,10 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
 
   // Add relational link
   async function handleAddLink() {
+    if (!currentRole.canLink) {
+      setError('Permission Denied: Your role does not have authorization to link records.');
+      return;
+    }
     if (!editing || !targetLinkId) return;
     try {
       if (dataSource === 'api') {
@@ -481,6 +610,10 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
 
   // Import JSON Backup
   const handleImportJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!currentRole.canManageData) {
+      setError('Permission Denied: Only Secretariat Administrators can import backups.');
+      return;
+    }
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
@@ -499,6 +632,10 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
 
   // Reset to Seed
   const handleResetSeed = () => {
+    if (!currentRole.canManageData) {
+      setError('Permission Denied: Only Secretariat Administrators can reset official data.');
+      return;
+    }
     if (confirm('Reset the database to the official 30+ Grand Gedeh verified seed records?')) {
       StorageEngine.resetToSeedData();
       loadData();
@@ -506,7 +643,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
     }
   };
 
-  // Submit Public Grievance
+  // Submit Public Grievance (Accessible to ALL, including Citizens)
   const handleSubmitGrievance = (e: React.FormEvent) => {
     e.preventDefault();
     if (!grievanceForm.title || !grievanceForm.description) {
@@ -533,7 +670,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
         claimantContact: grievanceForm.confidentiality === 'Restricted' ? 'Encrypted / Redacted' : grievanceForm.claimantContact,
         closedDate: ''
       }),
-      created_by: 'Public Stakeholder Intake'
+      created_by: `${currentRole.name} (Public Submission)`
     });
 
     setGrievanceSuccessRef(refId);
@@ -582,6 +719,320 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
 
   const activeSlideData = HERO_SLIDES[currentSlide];
 
+  // ----------------------------------------------------------------------
+  // SCENARIO 1: PUBLIC LANDING PAGE (NO SIDEBAR!)
+  // ----------------------------------------------------------------------
+  if (activeTab === 'home') {
+    return (
+      <div className="publicShell">
+        {/* PUBLIC TOP NAVBAR */}
+        <header className="publicNavbar">
+          <div className="publicBrand" onClick={() => setActiveTab('home')}>
+            <div className="seal">G</div>
+            <div>
+              <strong>GGCDC</strong>
+              <small>Grand Gedeh Citizens Development Council</small>
+            </div>
+          </div>
+
+          <nav className="publicNavLinks">
+            <button className="publicNavLink" onClick={() => setActiveTab('architecture')}>
+              Architecture & Model
+            </button>
+            <button className="publicNavLink" onClick={() => { setActiveTab('putu-group'); setActiveModuleId('agreements'); }}>
+              Putu Working Groups (14)
+            </button>
+            <button className="publicNavLink" onClick={() => setActiveTab('roadmap')}>
+              Consultative Roadmap
+            </button>
+            <button className="publicNavLink" onClick={() => setActiveTab('pillars')}>
+              12 Stakeholder Pillars
+            </button>
+            <button className="publicNavLink" onClick={() => { setActiveTab('tools'); setActiveTool('grievance-portal'); }}>
+              Confidential Grievance Portal
+            </button>
+          </nav>
+
+          <div className="publicNavActions">
+            {/* Persona Simulator */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '11px', color: '#688075', fontWeight: 700, textTransform: 'uppercase' }}>
+                RBAC Persona:
+              </span>
+              <select
+                value={currentRole.id}
+                onChange={(e) => {
+                  const r = ROLES.find(item => item.id === e.target.value);
+                  if (r) setCurrentRole(r);
+                }}
+                style={{
+                  height: '34px',
+                  borderRadius: '6px',
+                  border: '1px solid #d5ded9',
+                  background: '#f8faf9',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  color: '#1a4338',
+                  padding: '0 8px'
+                }}
+              >
+                {ROLES.map(r => (
+                  <option key={r.id} value={r.id}>{r.name} ({r.badge})</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Primary Action to Enter Internal Workspace */}
+            <Button
+              className="primary"
+              onClick={() => setActiveTab('dashboard')}
+              style={{ height: '38px', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <LayoutDashboard size={15} /> Council Workspace
+            </Button>
+          </div>
+        </header>
+
+        {/* PUBLIC CONTENT CONTAINER */}
+        <div className="publicContent">
+          {/* NOTICES & FEEDBACK */}
+          {feedback && (
+            <div style={{ background: '#e9f7ef', color: '#145a32', border: '1px solid #a9dfbf', padding: '12px 18px', borderRadius: '8px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
+              <CheckCircle2 size={18} />
+              <span>{feedback}</span>
+            </div>
+          )}
+          {error && (
+            <div style={{ background: '#fdf2e9', color: '#a04000', border: '1px solid #edbb99', padding: '12px 18px', borderRadius: '8px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
+              <AlertTriangle size={18} />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* HERO SECTION */}
+          <div className="heroWrapper">
+            <div className="heroGrid">
+              {/* Left Column: Title, Subtitle, Sacred Quote, CTAs */}
+              <div className="heroLeft">
+                <div className="heroTag">
+                  <ShieldCheck size={14} />
+                  INDEPENDENT CIVIC STAKEHOLDER PLATFORM
+                </div>
+
+                <h1 className="heroTitle">
+                  Grand Gedeh Citizens Development Council
+                </h1>
+
+                <div className="heroSubtitle">
+                  One County • One Voice • Shared Development
+                </div>
+
+                <p className="heroDesc">
+                  A county-centered, nonpartisan platform uniting customary landowners, traditional chiefs, women, youth, professionals, and diaspora partners to safeguard our natural resources, secure genuine community benefits from Putu mining, and build lasting multi-generational prosperity.
+                </p>
+
+                <div className="heroQuote">
+                  "{governingPrinciples.sacredRule}"
+                </div>
+
+                <div className="heroCtas">
+                  <Button
+                    className="primary"
+                    onClick={() => setActiveTab('dashboard')}
+                    style={{ height: '46px', padding: '0 24px', fontSize: '15px', fontWeight: 700 }}
+                  >
+                    <LayoutDashboard size={18} /> Enter Council Command Center
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    onClick={() => { setActiveTab('tools'); setActiveTool('grievance-portal'); }}
+                    style={{ height: '46px', padding: '0 20px', fontSize: '14px', background: '#ffffff15', color: '#fff', borderColor: '#d5ae5980' }}
+                  >
+                    <ShieldAlert size={18} color="#f5d78e" /> Confidential Grievance Portal
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    onClick={() => { setActiveTab('putu-group'); setActiveModuleId('agreements'); }}
+                    style={{ height: '46px', padding: '0 20px', fontSize: '14px', background: '#ffffff10', color: '#e0ece6', borderColor: '#ffffff30' }}
+                  >
+                    <BriefcaseBusiness size={18} /> Putu Working Group
+                  </Button>
+                </div>
+
+                <div className="heroStats">
+                  <div>
+                    <strong>12 Pillars</strong>
+                    <span>Founding Representation</span>
+                  </div>
+                  <div>
+                    <strong>14 Areas</strong>
+                    <span>Putu Working Groups</span>
+                  </div>
+                  <div>
+                    <strong>100% Civic</strong>
+                    <span>Nonpartisan & Independent</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: High-Impact Photo Carousel */}
+              <div
+                className="heroRight"
+                onMouseEnter={() => setIsCarouselPlaying(false)}
+                onMouseLeave={() => setIsCarouselPlaying(true)}
+              >
+                <div className="carouselBox">
+                  <div className="carouselImgWrap">
+                    <img
+                      src={activeSlideData.imageUrl}
+                      alt={activeSlideData.alt}
+                      className="carouselImg"
+                    />
+
+                    {/* Top Controls Overlay */}
+                    <div className="carouselControls">
+                      <button
+                        className="carouselBtn"
+                        onClick={() => setIsCarouselPlaying(!isCarouselPlaying)}
+                        aria-label={isCarouselPlaying ? 'Pause Slideshow' : 'Play Slideshow'}
+                        title={isCarouselPlaying ? 'Pause Slideshow' : 'Play Slideshow'}
+                      >
+                        {isCarouselPlaying ? <Pause size={15} /> : <Play size={15} />}
+                      </button>
+                      <button className="carouselBtn" onClick={prevSlide} aria-label="Previous image">
+                        <ChevronLeft size={18} />
+                      </button>
+                      <button className="carouselBtn" onClick={nextSlide} aria-label="Next image">
+                        <ChevronRight size={18} />
+                      </button>
+                      <div className="carouselCounter">
+                        {currentSlide + 1} / {HERO_SLIDES.length}
+                      </div>
+                    </div>
+
+                    {/* Slide Caption Overlay */}
+                    <div className="carouselOverlay">
+                      <span className="slidePill">{activeSlideData.tag}</span>
+                      <h3 className="slideTitle">{activeSlideData.title}</h3>
+                      <p className="slideCaption">{activeSlideData.caption}</p>
+                    </div>
+
+                    {/* Dot Navigation */}
+                    <div className="carouselDots">
+                      {HERO_SLIDES.map((slide, idx) => (
+                        <button
+                          key={slide.id}
+                          className={`carouselDot ${idx === currentSlide ? 'activeDot' : ''}`}
+                          onClick={() => setCurrentSlide(idx)}
+                          aria-label={`Go to slide ${idx + 1}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* THREE CORE PILLARS OF THE PLATFORM */}
+          <div className="landingIntro">
+            <div className="landingCard">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                <div style={{ background: '#eaf4ef', color: '#133e36', padding: '8px', borderRadius: '8px' }}>
+                  <Building2 size={22} />
+                </div>
+                <strong>Tripartite Architecture</strong>
+              </div>
+              <p>
+                Clear distinction: GGCDC is the county-centered civic platform; GGAA provides diaspora technical backup; GGBA gives independent legal expertise; affected customary communities retain direct voices and land rights.
+              </p>
+              <Button variant="outline" size="sm" className="cardBtn" onClick={() => setActiveTab('architecture')}>
+                Explore Architecture <ChevronRight size={14} />
+              </Button>
+            </div>
+
+            <div className="landingCard">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                <div style={{ background: '#fdf6e8', color: '#976e1a', padding: '8px', borderRadius: '8px' }}>
+                  <Compass size={22} />
+                </div>
+                <strong>Consultative Formation Roadmap</strong>
+              </div>
+              <p>
+                President Edith T. Poah's dispatched emissary is currently in Monrovia facilitating civic dialogues, followed by in-county district townhalls and legal chartering with GGBA toward a formal Constitutional Assembly.
+              </p>
+              <Button variant="outline" size="sm" className="cardBtn" onClick={() => setActiveTab('roadmap')}>
+                View 5-Phase Roadmap <ChevronRight size={14} />
+              </Button>
+            </div>
+
+            <div className="landingCard">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                <div style={{ background: '#eef2f9', color: '#1b4f8a', padding: '8px', borderRadius: '8px' }}>
+                  <BriefcaseBusiness size={22} />
+                </div>
+                <strong>14 Putu Mining Work Areas</strong>
+              </div>
+              <p>
+                A specialized arm actively tracking MDA clauses, customary boundaries, local hiring quotas, environmental water testing, corridor rail multi-user access, and community development funds.
+              </p>
+              <Button variant="outline" size="sm" className="cardBtn" onClick={() => setActiveTab('putu-group')}>
+                Browse Work Areas <ChevronRight size={14} />
+              </Button>
+            </div>
+          </div>
+
+          {/* QUICK FEATURE HIGHLIGHT: 14 PUTU MODULES */}
+          <div style={{ background: '#fff', border: '1px solid #dce5e0', borderRadius: '14px', padding: '32px', marginBottom: '36px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '22px', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <h2 style={{ font: '700 24px Georgia', margin: 0, color: '#133e36' }}>
+                  Putu Mining & Development Working Group
+                </h2>
+                <p style={{ margin: '4px 0 0', color: '#687d74', fontSize: '14px' }}>
+                  Fourteen interconnected operational areas tracking commitments, safeguards, and citizen benefits.
+                </p>
+              </div>
+              <Button className="primary" onClick={() => setActiveTab('dashboard')}>
+                Enter Council Workspace ({records.length} records)
+              </Button>
+            </div>
+
+            <div className="moduleGrid">
+              {modules.map((m) => {
+                const Icon = moduleIcons[m.id] || FileText;
+                return (
+                  <button
+                    key={m.id}
+                    className="moduleCard"
+                    onClick={() => {
+                      setActiveTab('putu-group');
+                      setActiveModuleId(m.id);
+                    }}
+                  >
+                    <div className="moduleIcon">
+                      <Icon size={21} />
+                    </div>
+                    <div>
+                      <strong>{m.name}</strong>
+                      <p>{m.description}</p>
+                    </div>
+                    <span>{moduleCounts[m.id] || 0}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ----------------------------------------------------------------------
+  // SCENARIO 2: AUTHENTICATED COUNCIL WORKSPACE (SIDEBAR ACTIVE & RBAC ENFORCED)
+  // ----------------------------------------------------------------------
   return (
     <div className="shell">
       {/* SIDEBAR NAVIGATION */}
@@ -590,24 +1041,39 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
           <div className="seal">G</div>
           <div>
             <strong>GGCDC</strong>
-            <small>Grand Gedeh Citizens Dev. Council</small>
+            <small>Council Workspace</small>
           </div>
           <button className="closeMobile" onClick={() => setMobileMenuOpen(false)} aria-label="Close menu">
             <X size={20} />
           </button>
         </div>
 
-        <div className="sideScroll">
-          {/* Main Navigation */}
-          <p className="sideLabel">PORTAL & VIEWS</p>
+        {/* Exit back to Public Portal Button */}
+        <div style={{ padding: '12px 14px', borderBottom: '1px solid #ffffff15' }}>
           <button
-            className={`nav ${activeTab === 'home' ? 'chosen' : ''}`}
             onClick={() => { setActiveTab('home'); setMobileMenuOpen(false); }}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 12px',
+              borderRadius: '6px',
+              border: '1px solid #d5ae5960',
+              background: '#d5ae5920',
+              color: '#f5d993',
+              fontSize: '13px',
+              fontWeight: 700,
+              cursor: 'pointer'
+            }}
           >
-            <HomeIcon size={18} />
-            Home / Landing Page
+            <ArrowLeft size={16} /> Exit to Public Portal
           </button>
+        </div>
 
+        <div className="sideScroll">
+          {/* Main Workspace Navigation */}
+          <p className="sideLabel">WORKSPACE OPERATIONS</p>
           <button
             className={`nav ${activeTab === 'dashboard' ? 'chosen' : ''}`}
             onClick={() => { setActiveTab('dashboard'); setMobileMenuOpen(false); }}
@@ -654,10 +1120,13 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
           {modules.map((m) => {
             const Icon = moduleIcons[m.id] || FileText;
             const isSelected = activeTab === 'putu-group' && activeModuleId === m.id;
+            const isPrimary = currentRole.primaryModules.includes(m.id);
+
             return (
               <button
                 key={m.id}
                 className={`nav ${isSelected ? 'chosen' : ''}`}
+                style={isPrimary ? { borderLeft: '3px solid #d5ae59', paddingLeft: '9px' } : {}}
                 onClick={() => {
                   setActiveTab('putu-group');
                   setActiveModuleId(m.id);
@@ -674,17 +1143,19 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
           })}
         </div>
 
+        {/* Sidebar Footer with Role Info */}
         <div className="sideFoot">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-            <span style={{ color: '#d5ae59', fontWeight: 'bold' }}>{governingPrinciples.motto}</span>
+            <span style={{ color: '#d5ae59', fontWeight: 'bold' }}>{currentRole.badge}</span>
+            <span className={`rbacTag ${currentRole.type}`}>{currentRole.type}</span>
           </div>
-          <span style={{ fontSize: '11px', display: 'block', color: '#a0c4b6' }}>
-            Data Engine: {dataSource === 'api' ? 'Cloudflare D1 Online' : 'Local Persistent Engine (Active)'}
+          <span style={{ fontSize: '11px', display: 'block', color: '#a0c4b6', lineHeight: 1.4 }}>
+            {currentRole.canCreate ? 'Full Write & Audit Access' : 'Read-Only Observer Access'}
           </span>
         </div>
       </aside>
 
-      {/* MAIN CONTENT AREA */}
+      {/* WORKSPACE MAIN CONTENT AREA */}
       <main className="main">
         {/* TOPBAR */}
         <header className="topbar">
@@ -693,9 +1164,8 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
               <Menu size={22} />
             </button>
             <div className="breadcrumb">
-              <strong>GGCDC</strong>
+              <strong>GGCDC Workspace</strong>
               <span>/</span>
-              {activeTab === 'home' && 'Public Portal · Welcome'}
               {activeTab === 'dashboard' && 'Executive Command Center'}
               {activeTab === 'putu-group' && `Putu Working Group · ${currentModule.name}`}
               {activeTab === 'architecture' && 'Institutional Architecture & Governance'}
@@ -706,19 +1176,13 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
           </div>
 
           <div className="topRight">
-            {activeTab !== 'home' ? (
-              <Button variant="outline" size="sm" onClick={() => setActiveTab('home')} style={{ fontSize: '12px', height: '32px' }}>
-                <HomeIcon size={14} /> Public Portal
-              </Button>
-            ) : (
-              <Button size="sm" className="primary" onClick={() => setActiveTab('dashboard')} style={{ fontSize: '12px', height: '32px' }}>
-                <LayoutDashboard size={14} /> Open Command Center
-              </Button>
-            )}
+            <Button variant="outline" size="sm" onClick={() => setActiveTab('home')} style={{ fontSize: '12px', height: '32px' }}>
+              <ArrowLeft size={14} /> Public Portal
+            </Button>
 
-            {/* Persona / Role Selector */}
+            {/* Persona / RBAC Role Selector */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '12px', color: '#688075', fontWeight: 600 }}>Persona:</span>
+              <span style={{ fontSize: '12px', color: '#688075', fontWeight: 600 }}>Active Role:</span>
               <select
                 value={currentRole.id}
                 onChange={(e) => {
@@ -737,7 +1201,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                 }}
               >
                 {ROLES.map(r => (
-                  <option key={r.id} value={r.id}>{r.name}</option>
+                  <option key={r.id} value={r.id}>{r.name} ({r.badge})</option>
                 ))}
               </select>
             </div>
@@ -749,6 +1213,16 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
         </header>
 
         <div className="content">
+          {/* RBAC PERMISSION NOTICE BAR */}
+          <div className="roleNotice">
+            <div>
+              <strong>Active RBAC Persona: {currentRole.name}</strong> — <span>{currentRole.description}</span>
+            </div>
+            <span className={`rbacTag ${currentRole.type}`}>
+              {currentRole.canCreate ? 'Authorized Contributor' : 'Read-Only Observer'}
+            </span>
+          </div>
+
           {/* NOTICES & FEEDBACK */}
           {feedback && (
             <div style={{ background: '#e9f7ef', color: '#145a32', border: '1px solid #a9dfbf', padding: '12px 18px', borderRadius: '8px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
@@ -760,228 +1234,6 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
             <div style={{ background: '#fdf2e9', color: '#a04000', border: '1px solid #edbb99', padding: '12px 18px', borderRadius: '8px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
               <AlertTriangle size={18} />
               <span>{error}</span>
-            </div>
-          )}
-
-          {/* VIEW: 0. HOME / LANDING PAGE WITH HERO SECTION & PHOTO CAROUSEL */}
-          {activeTab === 'home' && (
-            <div>
-              {/* HERO SECTION */}
-              <div className="heroWrapper">
-                <div className="heroGrid">
-                  {/* Left Column: Title, Subtitle, Sacred Quote, CTAs */}
-                  <div className="heroLeft">
-                    <div className="heroTag">
-                      <ShieldCheck size={14} />
-                      INDEPENDENT CIVIC STAKEHOLDER PLATFORM
-                    </div>
-
-                    <h1 className="heroTitle">
-                      Grand Gedeh Citizens Development Council
-                    </h1>
-
-                    <div className="heroSubtitle">
-                      One County • One Voice • Shared Development
-                    </div>
-
-                    <p className="heroDesc">
-                      A county-centered, nonpartisan platform uniting customary landowners, traditional chiefs, women, youth, professionals, and diaspora partners to safeguard our natural resources, secure genuine community benefits from Putu mining, and build lasting multi-generational prosperity.
-                    </p>
-
-                    <div className="heroQuote">
-                      "{governingPrinciples.sacredRule}"
-                    </div>
-
-                    <div className="heroCtas">
-                      <Button
-                        className="primary"
-                        onClick={() => setActiveTab('dashboard')}
-                        style={{ height: '46px', padding: '0 24px', fontSize: '15px', fontWeight: 700 }}
-                      >
-                        <LayoutDashboard size={18} /> Enter Command Center
-                      </Button>
-
-                      <Button
-                        variant="outline"
-                        onClick={() => { setActiveTab('tools'); setActiveTool('grievance-portal'); }}
-                        style={{ height: '46px', padding: '0 20px', fontSize: '14px', background: '#ffffff15', color: '#fff', borderColor: '#d5ae5980' }}
-                      >
-                        <ShieldAlert size={18} color="#f5d78e" /> Confidential Grievance Portal
-                      </Button>
-
-                      <Button
-                        variant="outline"
-                        onClick={() => { setActiveTab('putu-group'); setActiveModuleId('agreements'); }}
-                        style={{ height: '46px', padding: '0 20px', fontSize: '14px', background: '#ffffff10', color: '#e0ece6', borderColor: '#ffffff30' }}
-                      >
-                        <BriefcaseBusiness size={18} /> Putu Working Group
-                      </Button>
-                    </div>
-
-                    <div className="heroStats">
-                      <div>
-                        <strong>12 Pillars</strong>
-                        <span>Founding Representation</span>
-                      </div>
-                      <div>
-                        <strong>14 Areas</strong>
-                        <span>Putu Working Groups</span>
-                      </div>
-                      <div>
-                        <strong>100% Civic</strong>
-                        <span>Nonpartisan & Independent</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Right Column: High-Impact Photo Carousel */}
-                  <div
-                    className="heroRight"
-                    onMouseEnter={() => setIsCarouselPlaying(false)}
-                    onMouseLeave={() => setIsCarouselPlaying(true)}
-                  >
-                    <div className="carouselBox">
-                      <div className="carouselImgWrap">
-                        <img
-                          src={activeSlideData.imageUrl}
-                          alt={activeSlideData.alt}
-                          className="carouselImg"
-                        />
-
-                        {/* Top Controls Overlay */}
-                        <div className="carouselControls">
-                          <button
-                            className="carouselBtn"
-                            onClick={() => setIsCarouselPlaying(!isCarouselPlaying)}
-                            aria-label={isCarouselPlaying ? 'Pause Slideshow' : 'Play Slideshow'}
-                            title={isCarouselPlaying ? 'Pause Slideshow' : 'Play Slideshow'}
-                          >
-                            {isCarouselPlaying ? <Pause size={15} /> : <Play size={15} />}
-                          </button>
-                          <button className="carouselBtn" onClick={prevSlide} aria-label="Previous image">
-                            <ChevronLeft size={18} />
-                          </button>
-                          <button className="carouselBtn" onClick={nextSlide} aria-label="Next image">
-                            <ChevronRight size={18} />
-                          </button>
-                          <div className="carouselCounter">
-                            {currentSlide + 1} / {HERO_SLIDES.length}
-                          </div>
-                        </div>
-
-                        {/* Slide Caption Overlay */}
-                        <div className="carouselOverlay">
-                          <span className="slidePill">{activeSlideData.tag}</span>
-                          <h3 className="slideTitle">{activeSlideData.title}</h3>
-                          <p className="slideCaption">{activeSlideData.caption}</p>
-                        </div>
-
-                        {/* Dot Navigation */}
-                        <div className="carouselDots">
-                          {HERO_SLIDES.map((slide, idx) => (
-                            <button
-                              key={slide.id}
-                              className={`carouselDot ${idx === currentSlide ? 'activeDot' : ''}`}
-                              onClick={() => setCurrentSlide(idx)}
-                              aria-label={`Go to slide ${idx + 1}`}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* THREE CORE PILLARS OF THE PLATFORM */}
-              <div className="landingIntro">
-                <div className="landingCard">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-                    <div style={{ background: '#eaf4ef', color: '#133e36', padding: '8px', borderRadius: '8px' }}>
-                      <Building2 size={22} />
-                    </div>
-                    <strong>Tripartite Architecture</strong>
-                  </div>
-                  <p>
-                    Clear distinction: GGCDC is the county-centered civic platform; GGAA provides diaspora technical backup; GGBA gives independent legal expertise; affected customary communities retain direct voices and land rights.
-                  </p>
-                  <Button variant="outline" size="sm" className="cardBtn" onClick={() => setActiveTab('architecture')}>
-                    Explore Architecture <ChevronRight size={14} />
-                  </Button>
-                </div>
-
-                <div className="landingCard">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-                    <div style={{ background: '#fdf6e8', color: '#976e1a', padding: '8px', borderRadius: '8px' }}>
-                      <Compass size={22} />
-                    </div>
-                    <strong>Consultative Formation Roadmap</strong>
-                  </div>
-                  <p>
-                    President Edith T. Poah's dispatched emissary is currently in Monrovia facilitating civic dialogues, followed by in-county district townhalls and legal chartering with GGBA toward a formal Constitutional Assembly.
-                  </p>
-                  <Button variant="outline" size="sm" className="cardBtn" onClick={() => setActiveTab('roadmap')}>
-                    View 5-Phase Roadmap <ChevronRight size={14} />
-                  </Button>
-                </div>
-
-                <div className="landingCard">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-                    <div style={{ background: '#eef2f9', color: '#1b4f8a', padding: '8px', borderRadius: '8px' }}>
-                      <BriefcaseBusiness size={22} />
-                    </div>
-                    <strong>14 Putu Mining Work Areas</strong>
-                  </div>
-                  <p>
-                    A specialized arm actively tracking MDA clauses, customary boundaries, local hiring quotas, environmental water testing, corridor rail multi-user access, and community development funds.
-                  </p>
-                  <Button variant="outline" size="sm" className="cardBtn" onClick={() => setActiveTab('putu-group')}>
-                    Browse Work Areas <ChevronRight size={14} />
-                  </Button>
-                </div>
-              </div>
-
-              {/* QUICK FEATURE HIGHLIGHT: 14 PUTU MODULES */}
-              <div style={{ background: '#fff', border: '1px solid #dce5e0', borderRadius: '14px', padding: '32px', marginBottom: '36px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '22px', flexWrap: 'wrap', gap: '12px' }}>
-                  <div>
-                    <h2 style={{ font: '700 24px Georgia', margin: 0, color: '#133e36' }}>
-                      Putu Mining & Development Working Group
-                    </h2>
-                    <p style={{ margin: '4px 0 0', color: '#687d74', fontSize: '14px' }}>
-                      Fourteen interconnected operational areas tracking commitments, safeguards, and citizen benefits.
-                    </p>
-                  </div>
-                  <Button className="primary" onClick={() => setActiveTab('dashboard')}>
-                    Access Working Group Records ({records.length})
-                  </Button>
-                </div>
-
-                <div className="moduleGrid">
-                  {modules.map((m) => {
-                    const Icon = moduleIcons[m.id] || FileText;
-                    return (
-                      <button
-                        key={m.id}
-                        className="moduleCard"
-                        onClick={() => {
-                          setActiveTab('putu-group');
-                          setActiveModuleId(m.id);
-                        }}
-                      >
-                        <div className="moduleIcon">
-                          <Icon size={21} />
-                        </div>
-                        <div>
-                          <strong>{m.name}</strong>
-                          <p>{m.description}</p>
-                        </div>
-                        <span>{moduleCounts[m.id] || 0}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
             </div>
           )}
 
@@ -1036,9 +1288,15 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                   </p>
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
-                  <Button onClick={() => handleOpenNew()} className="primary">
-                    <Plus size={18} /> New record
-                  </Button>
+                  {currentRole.canCreate ? (
+                    <Button onClick={() => handleOpenNew()} className="primary">
+                      <Plus size={18} /> New record
+                    </Button>
+                  ) : (
+                    <Button variant="outline" disabled style={{ opacity: 0.7 }}>
+                      <Lock size={16} /> Read-Only Observer
+                    </Button>
+                  )}
                 </div>
               </div>
 
@@ -1073,10 +1331,12 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
               <div className="moduleGrid">
                 {modules.map((m) => {
                   const Icon = moduleIcons[m.id] || FileText;
+                  const isPrimary = currentRole.primaryModules.includes(m.id);
                   return (
                     <button
                       key={m.id}
                       className="moduleCard"
+                      style={isPrimary ? { borderColor: '#1b5e20', background: '#fcfdfc' } : {}}
                       onClick={() => {
                         setActiveTab('putu-group');
                         setActiveModuleId(m.id);
@@ -1087,6 +1347,11 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                       </div>
                       <div>
                         <strong>{m.name}</strong>
+                        {isPrimary && (
+                          <span style={{ fontSize: '11px', color: '#1b5e20', fontWeight: 'bold', display: 'block', margin: '2px 0' }}>
+                            ★ Primary for your role
+                          </span>
+                        )}
                         <p>{m.description}</p>
                       </div>
                       <span>{moduleCounts[m.id] || 0}</span>
@@ -1107,9 +1372,15 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                   <p>{currentModule.description}</p>
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
-                  <Button onClick={() => handleOpenNew(activeModuleId)} className="primary">
-                    <Plus size={18} /> New {currentModule.short} record
-                  </Button>
+                  {currentRole.canCreate ? (
+                    <Button onClick={() => handleOpenNew(activeModuleId)} className="primary">
+                      <Plus size={18} /> New {currentModule.short} record
+                    </Button>
+                  ) : (
+                    <Button variant="outline" disabled style={{ opacity: 0.7 }}>
+                      <Lock size={16} /> Read-Only Observer
+                    </Button>
+                  )}
                 </div>
               </div>
 
@@ -1771,12 +2042,16 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                         <strong style={{ display: 'block', fontSize: '15px', color: '#17473b' }}>Import Backup Archive</strong>
                         <small style={{ color: '#778b82' }}>Restore records and links from an exported GGCDC JSON backup file.</small>
                       </div>
-                      <label style={{ display: 'inline-block' }}>
-                        <input type="file" accept=".json" onChange={handleImportJSON} style={{ display: 'none' }} />
-                        <span className="btn" style={{ padding: '8px 14px', border: '1px solid #c9d6cf', borderRadius: '6px', cursor: 'pointer', background: '#fff', fontSize: '14px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                          <Upload size={16} /> Select File
-                        </span>
-                      </label>
+                      {currentRole.canManageData ? (
+                        <label style={{ display: 'inline-block' }}>
+                          <input type="file" accept=".json" onChange={handleImportJSON} style={{ display: 'none' }} />
+                          <span className="btn" style={{ padding: '8px 14px', border: '1px solid #c9d6cf', borderRadius: '6px', cursor: 'pointer', background: '#fff', fontSize: '14px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                            <Upload size={16} /> Select File
+                          </span>
+                        </label>
+                      ) : (
+                        <span style={{ fontSize: '12px', color: '#999', fontStyle: 'italic' }}>Restricted to Admin</span>
+                      )}
                     </div>
 
                     <div style={{ border: '1px solid #f2dede', borderRadius: '8px', padding: '18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fdf7f7' }}>
@@ -1784,9 +2059,13 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                         <strong style={{ display: 'block', fontSize: '15px', color: '#a94442' }}>Reset to Official Demo Data</strong>
                         <small style={{ color: '#c97878' }}>Restores the 30+ pre-seeded records (MDA clauses, Putu land claims, water quality tests, tenders).</small>
                       </div>
-                      <Button variant="outline" onClick={handleResetSeed} style={{ color: '#a94442', borderColor: '#ebccd1' }}>
-                        <RefreshCw size={16} /> Reset Demo Data
-                      </Button>
+                      {currentRole.canManageData ? (
+                        <Button variant="outline" onClick={handleResetSeed} style={{ color: '#a94442', borderColor: '#ebccd1' }}>
+                          <RefreshCw size={16} /> Reset Demo Data
+                        </Button>
+                      ) : (
+                        <span style={{ fontSize: '12px', color: '#999', fontStyle: 'italic' }}>Restricted to Admin</span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1913,7 +2192,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                 <select
                   value={form.module}
                   onChange={(e) => setForm(blankForm(e.target.value))}
-                  disabled={!!editing}
+                  disabled={!!editing || !currentRole.canCreate}
                 >
                   {modules.map(m => (
                     <option key={m.id} value={m.id}>{m.name}</option>
@@ -1927,6 +2206,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
                   placeholder={form.module === 'workforce' ? 'Full Name of Candidate' : 'Concise, specific record title'}
+                  disabled={!currentRole.canCreate && !currentRole.canEdit}
                 />
               </label>
 
@@ -1935,6 +2215,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                 <select
                   value={form.status}
                   onChange={(e) => setForm({ ...form, status: e.target.value })}
+                  disabled={!currentRole.canCreate && !currentRole.canEdit}
                 >
                   {statuses.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
@@ -1946,6 +2227,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                   value={form.owner}
                   onChange={(e) => setForm({ ...form, owner: e.target.value })}
                   placeholder="e.g. GGBA Counsel, Youth Desk, HSE Officer"
+                  disabled={!currentRole.canCreate && !currentRole.canEdit}
                 />
               </label>
 
@@ -1954,6 +2236,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                 <select
                   value={form.county}
                   onChange={(e) => setForm({ ...form, county: e.target.value })}
+                  disabled={!currentRole.canCreate && !currentRole.canEdit}
                 >
                   {counties.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
@@ -1965,6 +2248,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                   value={form.community}
                   onChange={(e) => setForm({ ...form, community: e.target.value })}
                   placeholder="e.g. Putu Jarwodee, Pennoken, Tiama, Zwedru"
+                  disabled={!currentRole.canCreate && !currentRole.canEdit}
                 />
               </label>
 
@@ -1974,6 +2258,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                   type="date"
                   value={form.dueDate}
                   onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
+                  disabled={!currentRole.canCreate && !currentRole.canEdit}
                 />
               </label>
 
@@ -1984,6 +2269,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                   onChange={(e) => setForm({ ...form, summary: e.target.value })}
                   rows={2}
                   placeholder="Brief summary of commitments, facts, or actions..."
+                  disabled={!currentRole.canCreate && !currentRole.canEdit}
                 />
               </label>
             </div>
@@ -2002,6 +2288,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                         details: { ...form.details, [field.key]: e.target.value }
                       })}
                       rows={3}
+                      disabled={!currentRole.canCreate && !currentRole.canEdit}
                     />
                   ) : field.type === 'select' ? (
                     <select
@@ -2010,6 +2297,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                         ...form,
                         details: { ...form.details, [field.key]: e.target.value }
                       })}
+                      disabled={!currentRole.canCreate && !currentRole.canEdit}
                     >
                       <option value="">Select option…</option>
                       {field.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
@@ -2022,6 +2310,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                         ...form,
                         details: { ...form.details, [field.key]: e.target.value }
                       })}
+                      disabled={!currentRole.canCreate && !currentRole.canEdit}
                     />
                   )}
                 </label>
@@ -2036,7 +2325,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
             )}
 
             {/* RELATIONAL LINKING */}
-            {editing && (
+            {editing && currentRole.canLink && (
               <div className="linkSection">
                 <h3><Link2 size={17} /> Cross-Sector Linked Records</h3>
                 {links
@@ -2086,9 +2375,11 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
             <Button variant="outline" onClick={() => setModal(false)}>
               Cancel
             </Button>
-            <Button className="primary" onClick={handleSaveRecord} disabled={saving}>
-              <Save size={16} /> {saving ? 'Saving…' : 'Save Record'}
-            </Button>
+            {(currentRole.canCreate || (editing && currentRole.canEdit)) && (
+              <Button className="primary" onClick={handleSaveRecord} disabled={saving}>
+                <Save size={16} /> {saving ? 'Saving…' : 'Save Record'}
+              </Button>
+            )}
           </div>
         </DialogContent>
       </Dialog>
