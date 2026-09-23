@@ -1,0 +1,6 @@
+import { sqliteTable, text, integer, index } from 'drizzle-orm/sqlite-core';
+export const records = sqliteTable('records', {
+ id: text('id').primaryKey(), module: text('module').notNull(), title: text('title').notNull(), status: text('status').notNull().default('Draft'), county: text('county'), community: text('community'), owner: text('owner'), dueDate: text('due_date'), summary: text('summary'), details: text('details').notNull().default('{}'), createdBy: text('created_by').notNull(), createdAt: text('created_at').notNull(), updatedAt: text('updated_at').notNull(),
+}, t=>[index('records_module_idx').on(t.module),index('records_status_idx').on(t.status)]);
+export const links = sqliteTable('record_links', { id:text('id').primaryKey(), sourceId:text('source_id').notNull(), targetId:text('target_id').notNull(), relation:text('relation').notNull(), createdAt:text('created_at').notNull() },t=>[index('links_source_idx').on(t.sourceId),index('links_target_idx').on(t.targetId)]);
+export const events = sqliteTable('record_events', { id:text('id').primaryKey(), recordId:text('record_id').notNull(), actor:text('actor').notNull(), action:text('action').notNull(), note:text('note'), at:text('at').notNull() },t=>[index('events_record_idx').on(t.recordId)]);
