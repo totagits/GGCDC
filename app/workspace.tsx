@@ -68,7 +68,11 @@ import {
   Lock,
   Unlock,
   LogOut,
-  ArrowLeft
+  ArrowLeft,
+  Printer,
+  Award,
+  FileUp,
+  FileCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -307,9 +311,37 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [currentRole, setCurrentRole] = useState<RoleDef>(ROLES[0]);
   
-  // Tool: Workforce Matcher
+  // Tool: Workforce Matcher & Talent Desk
   const [matcherTrade, setMatcherTrade] = useState('All');
   const [matcherMinExp, setMatcherMinExp] = useState(0);
+  const [matcherTrackFilter, setMatcherTrackFilter] = useState<'All' | 'Track A' | 'Track B'>('All');
+  const [talentView, setTalentView] = useState<'register' | 'directory'>('register');
+  const [talentTrack, setTalentTrack] = useState<'certified' | 'workforce_dev'>('certified');
+  const [recommendationModalCandidate, setRecommendationModalCandidate] = useState<any | null>(null);
+  const [talentForm, setTalentForm] = useState({
+    fullName: '',
+    county: 'Grand Gedeh',
+    community: 'Putu Jarwodee',
+    phone: '',
+    email: '',
+    profession: 'Heavy Equipment Operator',
+    qualification: 'BSc / University Degree',
+    institution: '',
+    experience: '3',
+    skills: '',
+    availability: 'Available now',
+    proofFileName: '',
+    proofFileSize: '',
+    proofFileData: '',
+    endorsement: '',
+    desiredTrade: 'Heavy Haul Truck Operator',
+    schoolingLevel: 'High School Leaver',
+    priorExperience: 'Informal / Ready to Learn',
+    backgroundNotes: '',
+    communityReference: '',
+    consent: true
+  });
+  const [talentSuccessId, setTalentSuccessId] = useState<string | null>(null);
 
   // Tool: Grievance Portal
   const [grievanceForm, setGrievanceForm] = useState({
@@ -689,7 +721,88 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
     loadData();
   };
 
-  // Workforce Registry Candidates for Matcher
+  // File Upload Handler for Degree / License / Residency Proof
+  const handleProofFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (uploadEvent) => {
+        setTalentForm(prev => ({
+          ...prev,
+          proofFileName: file.name,
+          proofFileSize: `${(file.size / 1024).toFixed(1)} KB`,
+          proofFileData: (uploadEvent.target?.result as string) || ''
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Submit Talent Profile (Public Ingestion into Workforce Repository)
+  const handleSubmitTalent = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!talentForm.fullName.trim()) {
+      setError('Please provide your full legal name.');
+      return;
+    }
+    if (!talentForm.phone.trim()) {
+      setError('Please provide a contact phone number or WhatsApp.');
+      return;
+    }
+    if (!talentForm.consent) {
+      setError('Mandatory Safeguard: Explicit consent is required to register with the GGCDC workforce registry.');
+      return;
+    }
+
+    const isTrackA = talentTrack === 'certified';
+    const trackingCode = `GGCDC-${isTrackA ? 'PRO' : 'WFD'}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const recordTitle = isTrackA 
+      ? `${talentForm.fullName} - ${talentForm.profession}` 
+      : `${talentForm.fullName} - Trainee ${talentForm.desiredTrade}`;
+      
+    const recordSummary = isTrackA 
+      ? `${talentForm.qualification} from ${talentForm.institution || 'Accredited Institution'}. ${talentForm.experience} years experience. Proof document: ${talentForm.proofFileName || 'Official credential on file'}.`
+      : `Workforce Development candidate from ${talentForm.community}. Desired Trade: ${talentForm.desiredTrade}. Endorsed by ${talentForm.communityReference || 'Community Leadership'}.`;
+
+    const detailsObj = {
+      track: isTrackA ? 'Track A: Certified Professional / Skilled Artisan' : 'Track B: Workforce Development / Apprenticeship Candidate',
+      occupation: isTrackA ? talentForm.profession : `Workforce Development Trainee (${talentForm.desiredTrade})`,
+      desiredTrade: isTrackA ? talentForm.profession : talentForm.desiredTrade,
+      skills: isTrackA ? talentForm.skills : (talentForm.backgroundNotes || 'Eager apprentice, ready for intensive technical sponsorship'),
+      experience: isTrackA ? talentForm.experience : '0',
+      availability: talentForm.availability,
+      contact: talentForm.phone + (talentForm.email ? ` / ${talentForm.email}` : ''),
+      qualification: isTrackA ? talentForm.qualification : `No Formal Degree (${talentForm.schoolingLevel} - Ready for Apprenticeship)`,
+      institution: isTrackA ? (talentForm.institution || 'Accredited Institution') : (talentForm.schoolingLevel || 'Community Learner'),
+      recommendationStatus: isTrackA ? 'Endorsed for Concessionaire Direct Hire' : 'Recommended for TVET Sponsorship',
+      proofDocument: talentForm.proofFileName ? `${talentForm.proofFileName} (${talentForm.proofFileSize})` : (isTrackA ? 'Degree / License Verification on File' : 'Residency & Community Verification Attached'),
+      proofFileData: talentForm.proofFileData || undefined,
+      endorsement: isTrackA ? (talentForm.endorsement || `${talentForm.community} Stakeholder Group`) : (talentForm.communityReference || `${talentForm.community} Traditional Council`),
+      trackingCode,
+      consent: 'Yes',
+      consentDate: new Date().toISOString().split('T')[0]
+    };
+
+    StorageEngine.addRecord({
+      module: 'workforce',
+      title: recordTitle,
+      status: 'In progress',
+      county: talentForm.county,
+      community: talentForm.community,
+      owner: 'Workforce Registry Desk',
+      due_date: `${new Date().getFullYear()}-12-31`,
+      summary: recordSummary,
+      details: JSON.stringify(detailsObj),
+      created_by: `Public Registration (${isTrackA ? 'Track A Certified' : 'Track B Trainee'})`
+    });
+
+    setTalentSuccessId(trackingCode);
+    setFeedback(`Talent profile successfully submitted! Reference ID: ${trackingCode}. Recorded in GGCDC Workforce Repository.`);
+    setError('');
+    loadData();
+  };
+
+  // Workforce Registry Candidates for Matcher & Directory
   const workforceCandidates = useMemo(() => {
     return records
       .filter(r => r.module === 'workforce')
@@ -700,25 +813,235 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
         } catch {
           details = {};
         }
+        const isTrackB = (details.track || '').includes('Track B') || (details.qualification || '').includes('No Formal') || (r.title || '').includes('Trainee');
         return {
           id: r.id,
           name: r.title,
           community: r.community,
+          county: r.county || 'Grand Gedeh',
+          track: isTrackB ? 'Track B: Workforce Development / Apprenticeship' : 'Track A: Certified Professional / Skilled Artisan',
+          trackType: isTrackB ? ('Track B' as const) : ('Track A' as const),
           occupation: details.occupation || 'Tradesperson',
+          desiredTrade: details.desiredTrade || details.occupation || '',
           skills: details.skills || '',
           experience: parseInt(details.experience || '0', 10),
           availability: details.availability || 'Available now',
           contact: details.contact || '',
-          qualification: details.qualification || '',
+          qualification: details.qualification || 'Certified Professional',
+          institution: details.institution || 'Accredited Institution',
+          recommendationStatus: details.recommendationStatus || (isTrackB ? 'Recommended for TVET Sponsorship' : 'Endorsed for Concessionaire Direct Hire'),
+          proofDocument: details.proofDocument || (isTrackB ? 'Residency Proof on File' : 'Certified Degree on File'),
+          proofFileData: details.proofFileData || null,
+          endorsement: details.endorsement || `${r.community} Stakeholder Desk`,
+          summary: r.summary,
+          trackingCode: details.trackingCode || `GGCDC-${isTrackB ? 'WFD' : 'PRO'}-${r.id.replace('rec-wrk-', '')}`,
           consent: details.consent === 'Yes'
         };
       })
       .filter(c => {
-        const matchesTrade = matcherTrade === 'All' || c.occupation.toLowerCase().includes(matcherTrade.toLowerCase());
+        const matchesTrade = matcherTrade === 'All' || 
+          c.occupation.toLowerCase().includes(matcherTrade.toLowerCase()) || 
+          c.desiredTrade.toLowerCase().includes(matcherTrade.toLowerCase()) ||
+          c.skills.toLowerCase().includes(matcherTrade.toLowerCase());
         const matchesExp = c.experience >= matcherMinExp;
-        return matchesTrade && matchesExp;
+        const matchesTrack = matcherTrackFilter === 'All' || c.trackType === matcherTrackFilter;
+        return matchesTrade && matchesExp && matchesTrack;
       });
-  }, [records, matcherTrade, matcherMinExp]);
+  }, [records, matcherTrade, matcherMinExp, matcherTrackFilter]);
+
+  // Official GGCDC Endorsement & Recommendation Letter Modal
+  const renderRecommendationModal = () => {
+    if (!recommendationModalCandidate) return null;
+    const c = recommendationModalCandidate;
+    const isTrackA = c.trackType === 'Track A' || (c.track || '').includes('Track A');
+    const todayStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    const refNum = c.trackingCode || `GGCDC-REC-${c.id.replace('rec-wrk-', '')}`;
+
+    return (
+      <div 
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(10, 25, 20, 0.75)',
+          backdropFilter: 'blur(4px)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px',
+          overflowY: 'auto'
+        }}
+        onClick={() => setRecommendationModalCandidate(null)}
+      >
+        <div 
+          style={{
+            background: '#fff',
+            borderRadius: '12px',
+            maxWidth: '820px',
+            width: '100%',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            padding: '36px 44px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
+            border: '2px solid #133e36',
+            color: '#1a2e26',
+            fontFamily: 'serif',
+            position: 'relative'
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Action buttons header (hidden when printing) */}
+          <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid #dce5e0', paddingBottom: '14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#133e36', fontWeight: 600, fontSize: '13px', fontFamily: 'sans-serif' }}>
+              <ShieldCheck size={18} color="#2e7d32" />
+              <span>Official GGCDC Legal & Technical Endorsement Instrument</span>
+            </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.print()}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}
+              >
+                <Printer size={15} /> Print / Export PDF
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setRecommendationModalCandidate(null)}
+                style={{ padding: '4px 8px' }}
+              >
+                <X size={18} />
+              </Button>
+            </div>
+          </div>
+
+          {/* OFFICIAL LETTERHEAD */}
+          <div style={{ textAlign: 'center', borderBottom: '3px double #133e36', paddingBottom: '18px', marginBottom: '22px' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '56px', height: '56px', borderRadius: '50%', background: '#133e36', color: '#f3d999', fontSize: '26px', fontWeight: 'bold', fontFamily: 'sans-serif', margin: '0 auto 10px' }}>
+              G
+            </div>
+            <div style={{ fontSize: '12px', letterSpacing: '2px', textTransform: 'uppercase', color: '#687b73', fontWeight: 700, fontFamily: 'sans-serif' }}>
+              Republic of Liberia • Grand Gedeh County
+            </div>
+            <h1 style={{ fontSize: '24px', fontWeight: 800, color: '#133e36', margin: '4px 0 2px', fontFamily: 'Georgia, serif' }}>
+              Grand Gedeh Citizens Development Council (GGCDC)
+            </h1>
+            <div style={{ fontSize: '12px', color: '#445b52', fontFamily: 'sans-serif', fontStyle: 'italic' }}>
+              Secretariat for Human Capital, Concession Oversight & Community Labor Rights
+            </div>
+            <div style={{ fontSize: '11px', color: '#7a8e85', marginTop: '4px', fontFamily: 'sans-serif' }}>
+              In Collaboration with Traditional Chiefs, Customary Landowners, GGBA Legal Desk & GGAA Technical Advisory
+            </div>
+          </div>
+
+          {/* META INFO BAR */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontFamily: 'sans-serif', color: '#556b62', marginBottom: '22px', borderBottom: '1px solid #edf2ef', paddingBottom: '10px' }}>
+            <div><strong>Dispatch Ref:</strong> <span style={{ fontFamily: 'monospace', color: '#133e36', fontWeight: 700 }}>{refNum}</span></div>
+            <div><strong>Date of Attestation:</strong> {todayStr}</div>
+            <div><strong>County Classification:</strong> Indigene of Grand Gedeh ({c.community})</div>
+          </div>
+
+          {/* ADDRESSEE */}
+          <div style={{ fontSize: '13px', lineHeight: '1.6', marginBottom: '18px', fontFamily: 'sans-serif', color: '#2a3b34' }}>
+            <strong>TO:</strong> The Managing Director & Human Resources Directorate<br />
+            <strong>CONCESSIONAIRE:</strong> Putu Iron Ore Mining Concessionaire & Subcontracting Consortiums<br />
+            <strong>ATTN:</strong> Community Liaison Office & National Labor Quota Compliance Inspectorate
+          </div>
+
+          {/* DOCUMENT TITLE */}
+          <div style={{ background: isTrackA ? '#eef7f2' : '#fef9e7', border: `1px solid ${isTrackA ? '#a3cfbb' : '#f9e79f'}`, borderRadius: '6px', padding: '12px 18px', textAlign: 'center', marginBottom: '22px' }}>
+            <div style={{ fontSize: '11px', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '1px', color: isTrackA ? '#145a32' : '#7d6608', fontFamily: 'sans-serif' }}>
+              {isTrackA ? 'Statutory Local Hiring Direct-Hire Attestation' : 'Human Resource Development Fund Apprenticeship Directive'}
+            </div>
+            <h2 style={{ fontSize: '17px', fontWeight: 700, margin: '4px 0', color: '#133e36', fontFamily: 'Georgia, serif' }}>
+              {isTrackA 
+                ? 'OFFICIAL ENDORSEMENT FOR CONCESSIONAIRE PROFESSIONAL PLACEMENT'
+                : 'OFFICIAL RECOMMENDATION FOR CONCESSION-SPONSORED TVET & APPRENTICESHIP'}
+            </h2>
+            <div style={{ fontSize: '12px', color: '#556b62', fontFamily: 'sans-serif' }}>
+              Pursuant to the Mineral Development Agreement (MDA) Sections on County First-Right Preference & Skills Transfer
+            </div>
+          </div>
+
+          {/* LETTER BODY */}
+          <div style={{ fontSize: '14px', lineHeight: '1.7', color: '#24362f', marginBottom: '22px' }}>
+            {isTrackA ? (
+              <>
+                <p style={{ margin: '0 0 12px' }}>
+                  The <strong>Grand Gedeh Citizens Development Council (GGCDC)</strong>, exercising its civic mandate to monitor local content compliance and protect host-community economic rights, hereby presents and officially endorses <strong>{c.name}</strong>, a bona fide citizen originating from <strong>{c.community}, Grand Gedeh County</strong>.
+                </p>
+                <p style={{ margin: '0 0 12px' }}>
+                  Following rigorous examination of technical credentials, the GGCDC Technical Secretariat certifies that the candidate holds verified qualifications in <strong>{c.occupation}</strong>, with <strong>{c.experience} years of operational experience</strong>, formally accredited by <strong>{c.institution}</strong>.
+                </p>
+                <p style={{ margin: '0 0 12px' }}>
+                  <strong>Legal Quota Notice:</strong> Under the terms of the Mineral Development Agreement, the Concessionaire is contractually obligated to give priority consideration to qualified citizens of Grand Gedeh before recruiting non-county or expatriate personnel. Having verified the attached credentials, GGCDC asserts that any claim of &ldquo;lack of qualified local talent&rdquo; for this role is legally void.
+                </p>
+              </>
+            ) : (
+              <>
+                <p style={{ margin: '0 0 12px' }}>
+                  The <strong>Grand Gedeh Citizens Development Council (GGCDC)</strong>, in conjunction with the traditional elders and community leadership of <strong>{c.community}, Grand Gedeh County</strong>, hereby submits this formal recommendation on behalf of <strong>{c.name}</strong> for direct inclusion in the concessionaire-funded <strong>Workforce Development &amp; Apprenticeship Training Program</strong>.
+                </p>
+                <p style={{ margin: '0 0 12px' }}>
+                  The candidate is a motivated Grand Gedean citizen seeking professional training in <strong>{c.desiredTrade}</strong>. While lacking formal academic diplomas, the candidate has demonstrated practical mechanical aptitude, strong community endorsement by <strong>{c.endorsement}</strong>, and an explicit commitment to complete intensive TVET training.
+                </p>
+                <p style={{ margin: '0 0 12px' }}>
+                  <strong>MDA Skills Fund Notice:</strong> In accordance with the Concessionaire&apos;s contractual obligation to contribute annually to the <em>Community Human Resource Development Fund</em>, GGCDC sponsors this candidate for immediate placement in the upcoming vocational cohort, inclusive of industrial safety training, equipment apprenticeship, and subsequent mine-site placement.
+                </p>
+              </>
+            )}
+          </div>
+
+          {/* CANDIDATE VERIFIED PROFILE TABLE */}
+          <div style={{ border: '1px solid #dce5e0', borderRadius: '8px', padding: '16px', background: '#fafcfb', marginBottom: '24px', fontSize: '13px', fontFamily: 'sans-serif' }}>
+            <div style={{ fontWeight: 700, color: '#133e36', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: '11px' }}>
+              Candidate Credential & Registry Record
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px 20px' }}>
+              <div><span style={{ color: '#687b73' }}>Candidate Name:</span> <strong>{c.name}</strong></div>
+              <div><span style={{ color: '#687b73' }}>Community / Clan:</span> <strong>{c.community}, Grand Gedeh</strong></div>
+              <div><span style={{ color: '#687b73' }}>Designated Field:</span> <strong>{isTrackA ? c.occupation : c.desiredTrade}</strong></div>
+              <div><span style={{ color: '#687b73' }}>Experience / Stage:</span> <strong>{isTrackA ? `${c.experience} Years Verified` : 'Ready for Apprenticeship'}</strong></div>
+              <div><span style={{ color: '#687b73' }}>Academic / TVET Credential:</span> <strong>{c.qualification}</strong></div>
+              <div><span style={{ color: '#687b73' }}>Institution / Schooling:</span> <strong>{c.institution}</strong></div>
+              <div><span style={{ color: '#687b73' }}>Community Endorsement:</span> <strong>{c.endorsement}</strong></div>
+              <div><span style={{ color: '#687b73' }}>Proof Document on Record:</span> <strong style={{ color: '#133e36' }}>{c.proofDocument}</strong></div>
+              <div><span style={{ color: '#687b73' }}>Contact & Availability:</span> <strong>{c.contact} ({c.availability})</strong></div>
+              <div><span style={{ color: '#687b73' }}>GGCDC Registry Status:</span> <strong style={{ color: '#2e7d32' }}>{c.recommendationStatus}</strong></div>
+            </div>
+          </div>
+
+          {/* SIGNATURE BLOCK */}
+          <div style={{ marginTop: '30px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', textAlign: 'center', fontSize: '12px', fontFamily: 'sans-serif', borderTop: '1px solid #dce5e0', paddingTop: '20px' }}>
+            <div>
+              <div style={{ height: '36px', borderBottom: '1px dashed #7a8e85', margin: '0 20px 8px' }}></div>
+              <strong>Dr. Eric G. Gaye</strong><br />
+              <span style={{ color: '#687b73', fontSize: '11px' }}>Chairperson, Workforce &amp; TVET Committee<br />GGCDC</span>
+            </div>
+            <div>
+              <div style={{ height: '36px', borderBottom: '1px dashed #7a8e85', margin: '0 20px 8px' }}></div>
+              <strong>Elder Sampson K. Gaye</strong><br />
+              <span style={{ color: '#687b73', fontSize: '11px' }}>Representative, Traditional Chiefs &amp; Landowners<br />Putu Customary Council</span>
+            </div>
+            <div>
+              <div style={{ height: '36px', borderBottom: '1px dashed #7a8e85', margin: '0 20px 8px' }}></div>
+              <strong>Atty. Helena B. Dennis</strong><br />
+              <span style={{ color: '#687b73', fontSize: '11px' }}>Head of Secretariat &amp; Concession Oversight<br />Monrovia-Zwedru Coordination</span>
+            </div>
+          </div>
+
+          {/* FOOTER WATERMARK */}
+          <div style={{ textAlign: 'center', marginTop: '24px', fontSize: '10px', color: '#94a39b', fontFamily: 'sans-serif' }}>
+            Grand Gedeh Citizens Development Council • Official Seal of Attestation • Verification Hotline: +231-770-GGCDC-TALENT • talent@ggcdc.org.lr
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const activeSlideData = HERO_SLIDES[currentSlide];
 
@@ -1250,80 +1573,681 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
 
   const renderPublicWorkforceContent = () => (
     <div style={{ background: '#fff', border: '1px solid #dce5e0', borderRadius: '12px', padding: '28px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
+      {/* HEADER */}
+      <div style={{ marginBottom: '24px', borderBottom: '1px solid #edf2ef', paddingBottom: '18px' }}>
+        <div className="eyebrow">COUNTY HUMAN CAPITAL & LOCAL CONTENT REPOSITORY</div>
+        <h2 style={{ font: '700 24px Georgia', margin: '4px 0 6px', color: '#133e36' }}>
+          Grand Gedeh Talent Pool &amp; TVET Apprenticeship Engine
+        </h2>
+        <p style={{ fontSize: '14px', color: '#556b62', margin: 0, maxWidth: '840px', lineHeight: '1.6' }}>
+          Empowering Grand Gedeans to benefit directly from Putu Mountain and county natural resource operations. 
+          Register qualified degrees to legally defeat &ldquo;no local talent&rdquo; concessionaire excuses, or register for concession-mandated TVET skills development and apprenticeship programs.
+        </p>
+      </div>
+
+      {/* TOP NAVIGATION / VIEW TOGGLE */}
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '24px', flexWrap: 'wrap' }}>
+        <Button
+          variant={talentView === 'register' ? 'default' : 'outline'}
+          className={talentView === 'register' ? 'primary' : ''}
+          onClick={() => { setTalentView('register'); setTalentSuccessId(null); }}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}
+        >
+          <GraduationCap size={16} /> Register Talent / Apply for TVET Sponsorship
+        </Button>
+        <Button
+          variant={talentView === 'directory' ? 'default' : 'outline'}
+          className={talentView === 'directory' ? 'primary' : ''}
+          onClick={() => setTalentView('directory')}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}
+        >
+          <Users size={16} /> Public Talent Registry &amp; Directory ({workforceCandidates.length})
+        </Button>
+      </div>
+
+      {/* VIEW 1: REGISTRATION & TVET APPLICATION */}
+      {talentView === 'register' && (
         <div>
-          <div className="eyebrow">LOCAL TALENT PIPELINE</div>
-          <h2 style={{ font: '700 24px Georgia', margin: '4px 0 6px', color: '#133e36' }}>
-            Grand Gedeh Workforce Registry & Matcher
-          </h2>
-          <p style={{ fontSize: '14px', color: '#687b73', margin: 0 }}>
-            Match verified Grand Gedean tradespeople and professionals to mining contractor recruitment quotas with consent safeguards.
-          </p>
-        </div>
-
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <select
-            value={matcherTrade}
-            onChange={(e) => setMatcherTrade(e.target.value)}
-            style={{ height: '38px', borderRadius: '6px', border: '1px solid #d5ded9', padding: '0 10px', fontSize: '13px' }}
-          >
-            <option value="All">All Trades & Occupations</option>
-            <option value="Operator">Heavy Equipment Operators</option>
-            <option value="Welder">Welding & Fabrication</option>
-            <option value="Environmental">Environmental Scientists</option>
-            <option value="Logistics">Supply Chain & Logistics</option>
-          </select>
-
-          <select
-            value={matcherMinExp}
-            onChange={(e) => setMatcherMinExp(Number(e.target.value))}
-            style={{ height: '38px', borderRadius: '6px', border: '1px solid #d5ded9', padding: '0 10px', fontSize: '13px' }}
-          >
-            <option value="0">Any Experience</option>
-            <option value="5">5+ Years Experience</option>
-            <option value="8">8+ Years Experience</option>
-            <option value="10">10+ Years Experience</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="tableWrap">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Candidate & Location</TableHead>
-              <TableHead>Trade / Occupation</TableHead>
-              <TableHead>Experience</TableHead>
-              <TableHead>Qualifications & Certification</TableHead>
-              <TableHead>Consent Verified</TableHead>
-              <TableHead>Availability</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {workforceCandidates.map((c) => (
-              <TableRow key={c.id}>
-                <TableCell>
-                  <strong style={{ color: '#11352f' }}>{c.name}</strong>
-                  <small style={{ display: 'block', color: '#6c8077' }}>{c.community}, Grand Gedeh</small>
-                </TableCell>
-                <TableCell>{c.occupation}</TableCell>
-                <TableCell>{c.experience} Years</TableCell>
-                <TableCell><small>{c.qualification}</small></TableCell>
-                <TableCell>
-                  {c.consent ? (
-                    <span style={{ color: '#2e7d32', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <ShieldCheck size={16} /> Yes (Recorded)
+          {/* SUCCESS BANNER IF JUST SUBMITTED */}
+          {talentSuccessId ? (
+            <div style={{ background: '#eef7f2', border: '1px solid #a3cfbb', borderRadius: '10px', padding: '24px', marginBottom: '24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                <CheckCircle2 size={26} color="#1e7e34" />
+                <div>
+                  <h3 style={{ margin: 0, color: '#145a32', font: '700 18px Georgia' }}>
+                    Talent Profile Registered Successfully!
+                  </h3>
+                  <div style={{ fontSize: '13px', color: '#276e43' }}>
+                    Reference Tracking Number: <strong style={{ fontFamily: 'monospace', fontSize: '14px', background: '#d4edda', padding: '2px 6px', borderRadius: '4px' }}>{talentSuccessId}</strong>
+                  </div>
+                </div>
+              </div>
+              <p style={{ fontSize: '14px', color: '#2b5138', margin: '0 0 16px', lineHeight: '1.5' }}>
+                Your profile has been ingested into the GGCDC Workforce Repository. 
+                {talentTrack === 'certified' 
+                  ? ' Your academic and technical credentials are on record to ensure concessionaires comply with mandatory local hiring quotas.'
+                  : ' Your application has been logged for official GGCDC sponsorship under the Concessionaire Community Human Resource Development Fund.'}
+              </p>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                <Button
+                  className="primary"
+                  onClick={() => {
+                    const match = workforceCandidates.find(c => c.trackingCode === talentSuccessId) || workforceCandidates[0];
+                    setRecommendationModalCandidate(match);
+                  }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Printer size={15} /> View Official GGCDC Endorsement Brief
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setTalentSuccessId(null);
+                    setTalentForm(prev => ({
+                      ...prev,
+                      fullName: '',
+                      phone: '',
+                      email: '',
+                      skills: '',
+                      proofFileName: '',
+                      proofFileSize: '',
+                      proofFileData: '',
+                      backgroundNotes: ''
+                    }));
+                  }}
+                >
+                  Register Another Citizen
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setTalentView('directory')}
+                >
+                  Browse Talent Directory
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div>
+              {/* TWO TRACK SELECTOR CARDS */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+                {/* TRACK A CARD */}
+                <div
+                  onClick={() => setTalentTrack('certified')}
+                  style={{
+                    border: `2px solid ${talentTrack === 'certified' ? '#133e36' : '#dce5e0'}`,
+                    borderRadius: '10px',
+                    padding: '20px',
+                    cursor: 'pointer',
+                    background: talentTrack === 'certified' ? '#f4f9f6' : '#fff',
+                    transition: 'all 0.15s ease',
+                    boxShadow: talentTrack === 'certified' ? '0 4px 12px rgba(19, 62, 54, 0.08)' : 'none'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: talentTrack === 'certified' ? '#133e36' : '#e8efe9', color: talentTrack === 'certified' ? '#f3d999' : '#133e36', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Award size={22} />
+                    </div>
+                    <span style={{ fontSize: '11px', fontWeight: 700, padding: '3px 8px', borderRadius: '12px', background: '#d4edda', color: '#155724', textTransform: 'uppercase' }}>
+                      Direct Hire Quota
                     </span>
-                  ) : (
-                    <span style={{ color: '#c62828' }}>No consent</span>
-                  )}
-                </TableCell>
-                <TableCell><span className="status in-progress">{c.availability}</span></TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+                  </div>
+                  <h3 style={{ fontSize: '16px', fontWeight: 700, margin: '0 0 6px', color: '#133e36' }}>
+                    Track A: Certified Professionals &amp; Skilled Artisans
+                  </h3>
+                  <p style={{ fontSize: '13px', color: '#556b62', margin: '0 0 10px', lineHeight: '1.5' }}>
+                    For degree holders, certified engineers, TVET diploma holders, AWS welders, heavy equipment operators, accountants, and medics.
+                  </p>
+                  <div style={{ fontSize: '12px', color: '#276e43', fontWeight: 600 }}>
+                    ✓ Upload Degree / Certificate Proof to defeat &ldquo;no local talent&rdquo; claims
+                  </div>
+                </div>
+
+                {/* TRACK B CARD */}
+                <div
+                  onClick={() => setTalentTrack('workforce_dev')}
+                  style={{
+                    border: `2px solid ${talentTrack === 'workforce_dev' ? '#b7791f' : '#dce5e0'}`,
+                    borderRadius: '10px',
+                    padding: '20px',
+                    cursor: 'pointer',
+                    background: talentTrack === 'workforce_dev' ? '#fefcf8' : '#fff',
+                    transition: 'all 0.15s ease',
+                    boxShadow: talentTrack === 'workforce_dev' ? '0 4px 12px rgba(183, 121, 31, 0.08)' : 'none'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: talentTrack === 'workforce_dev' ? '#b7791f' : '#e8efe9', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <HardHat size={22} />
+                    </div>
+                    <span style={{ fontSize: '11px', fontWeight: 700, padding: '3px 8px', borderRadius: '12px', background: '#fef3c7', color: '#92400e', textTransform: 'uppercase' }}>
+                      MDA Funded Training
+                    </span>
+                  </div>
+                  <h3 style={{ fontSize: '16px', fontWeight: 700, margin: '0 0 6px', color: '#854d0e' }}>
+                    Track B: Workforce Development &amp; Apprenticeship Trainees
+                  </h3>
+                  <p style={{ fontSize: '13px', color: '#556b62', margin: '0 0 10px', lineHeight: '1.5' }}>
+                    For Grand Gedeans who want to work in mining, welding, driving, electrical, or camp services but <em>do not have formal degrees or certificates</em>.
+                  </p>
+                  <div style={{ fontSize: '12px', color: '#92400e', fontWeight: 600 }}>
+                    ✓ GGCDC sponsors your placement in concession-funded TVET programs
+                  </div>
+                </div>
+              </div>
+
+              {/* REGISTRATION FORM */}
+              <form onSubmit={handleSubmitTalent} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {/* SECTION 1: CITIZEN DEMOGRAPHICS */}
+                <div style={{ background: '#fbfcfc', border: '1px solid #e1e9e4', borderRadius: '8px', padding: '18px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', color: '#133e36', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Users size={16} /> 1. Citizen Identity &amp; Grand Gedeh Residency
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+                    <div>
+                      <label style={{ fontSize: '13px', fontWeight: 600, color: '#274b41', display: 'block', marginBottom: '6px' }}>
+                        Full Legal Name *
+                      </label>
+                      <Input
+                        value={talentForm.fullName}
+                        onChange={(e) => setTalentForm({ ...talentForm, fullName: e.target.value })}
+                        placeholder="e.g. Emmanuel B. Gaye"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '13px', fontWeight: 600, color: '#274b41', display: 'block', marginBottom: '6px' }}>
+                        County of Origin
+                      </label>
+                      <Input value="Grand Gedeh" disabled style={{ background: '#f0f3f2' }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '13px', fontWeight: 600, color: '#274b41', display: 'block', marginBottom: '6px' }}>
+                        Community / Clan / District *
+                      </label>
+                      <Input
+                        value={talentForm.community}
+                        onChange={(e) => setTalentForm({ ...talentForm, community: e.target.value })}
+                        placeholder="e.g. Putu Jarwodee, Tiama, Pennoken, Zwedru, Konobo"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '13px', fontWeight: 600, color: '#274b41', display: 'block', marginBottom: '6px' }}>
+                        Phone Number / WhatsApp *
+                      </label>
+                      <Input
+                        value={talentForm.phone}
+                        onChange={(e) => setTalentForm({ ...talentForm, phone: e.target.value })}
+                        placeholder="e.g. +231-770-123-456"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '13px', fontWeight: 600, color: '#274b41', display: 'block', marginBottom: '6px' }}>
+                        Email Address (Optional)
+                      </label>
+                      <Input
+                        value={talentForm.email}
+                        onChange={(e) => setTalentForm({ ...talentForm, email: e.target.value })}
+                        placeholder="e.g. candidate@example.com"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* SECTION 2: TRACK-SPECIFIC PROFILE */}
+                {talentTrack === 'certified' ? (
+                  /* TRACK A FIELDS */
+                  <div style={{ background: '#fbfcfc', border: '1px solid #e1e9e4', borderRadius: '8px', padding: '18px' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', color: '#133e36', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Award size={16} /> 2. Professional Qualifications &amp; Verified Experience (Track A)
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginBottom: '14px' }}>
+                      <div>
+                        <label style={{ fontSize: '13px', fontWeight: 600, color: '#274b41', display: 'block', marginBottom: '6px' }}>
+                          Primary Profession / Trade *
+                        </label>
+                        <select
+                          value={talentForm.profession}
+                          onChange={(e) => setTalentForm({ ...talentForm, profession: e.target.value })}
+                          style={{ width: '100%', height: '38px', borderRadius: '6px', border: '1px solid #d5ded9', padding: '0 10px', fontSize: '13px' }}
+                          required
+                        >
+                          <option>Heavy Equipment Operator</option>
+                          <option>Industrial Welder &amp; Steel Fabricator</option>
+                          <option>Mining Engineer / Geologist</option>
+                          <option>Environmental Scientist / Hydrologist</option>
+                          <option>Electrical / Power Plant Engineer</option>
+                          <option>Heavy Plant &amp; Mechanical Technician</option>
+                          <option>Materials Management &amp; Logistics</option>
+                          <option>Health, Safety &amp; Environment (HSE) Officer</option>
+                          <option>Mine Surveyor &amp; GIS Analyst</option>
+                          <option>Certified Accountant &amp; Financial Analyst</option>
+                          <option>Occupational Health Nurse / Paramedic</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '13px', fontWeight: 600, color: '#274b41', display: 'block', marginBottom: '6px' }}>
+                          Highest Degree / Certificate Level *
+                        </label>
+                        <select
+                          value={talentForm.qualification}
+                          onChange={(e) => setTalentForm({ ...talentForm, qualification: e.target.value })}
+                          style={{ width: '100%', height: '38px', borderRadius: '6px', border: '1px solid #d5ded9', padding: '0 10px', fontSize: '13px' }}
+                        >
+                          <option>BSc / University Bachelor Degree</option>
+                          <option>Master of Science (MSc) / Post-Graduate</option>
+                          <option>TVET Advanced Diploma (3-Year Technical)</option>
+                          <option>Booker Washington Institute (BWI) Vocational Diploma</option>
+                          <option>Ministry of Transport Certified Heavy Duty License</option>
+                          <option>American Welding Society (AWS) 6G Certificate</option>
+                          <option>EPA Certified Environmental Inspector</option>
+                          <option>Chartered Professional License</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '13px', fontWeight: 600, color: '#274b41', display: 'block', marginBottom: '6px' }}>
+                          Accredited Institution Attended *
+                        </label>
+                        <Input
+                          value={talentForm.institution}
+                          onChange={(e) => setTalentForm({ ...talentForm, institution: e.target.value })}
+                          placeholder="e.g. Tubman University, BWI Kakata, Cuttington, UL"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '13px', fontWeight: 600, color: '#274b41', display: 'block', marginBottom: '6px' }}>
+                          Years of Verified Experience *
+                        </label>
+                        <select
+                          value={talentForm.experience}
+                          onChange={(e) => setTalentForm({ ...talentForm, experience: e.target.value })}
+                          style={{ width: '100%', height: '38px', borderRadius: '6px', border: '1px solid #d5ded9', padding: '0 10px', fontSize: '13px' }}
+                        >
+                          <option value="1">1 - 2 Years</option>
+                          <option value="3">3 - 4 Years</option>
+                          <option value="5">5 - 7 Years</option>
+                          <option value="8">8 - 10 Years</option>
+                          <option value="12">10+ Years (Senior / Specialist)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '13px', fontWeight: 600, color: '#274b41', display: 'block', marginBottom: '6px' }}>
+                          Availability Timeline
+                        </label>
+                        <select
+                          value={talentForm.availability}
+                          onChange={(e) => setTalentForm({ ...talentForm, availability: e.target.value })}
+                          style={{ width: '100%', height: '38px', borderRadius: '6px', border: '1px solid #d5ded9', padding: '0 10px', fontSize: '13px' }}
+                        >
+                          <option>Available now</option>
+                          <option>Within 15 days</option>
+                          <option>Within 30 days</option>
+                          <option>Within 60 days</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '13px', fontWeight: 600, color: '#274b41', display: 'block', marginBottom: '6px' }}>
+                          Community / Clan Endorsement Body
+                        </label>
+                        <Input
+                          value={talentForm.endorsement}
+                          onChange={(e) => setTalentForm({ ...talentForm, endorsement: e.target.value })}
+                          placeholder="e.g. Putu Jarwodee Council, Zwedru Youth Desk"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '13px', fontWeight: 600, color: '#274b41', display: 'block', marginBottom: '6px' }}>
+                        Key Technical Machinery, Tools &amp; Methodologies
+                      </label>
+                      <Textarea
+                        rows={2}
+                        value={talentForm.skills}
+                        onChange={(e) => setTalentForm({ ...talentForm, skills: e.target.value })}
+                        placeholder="List specific models (CAT 349, D9 Dozer), software (Surpac, SAP ERP, ArcGIS), or welding codes (SMAW 6G)..."
+                      />
+                    </div>
+
+                    {/* DEGREE / CERTIFICATE PROOF UPLOAD */}
+                    <div style={{ marginTop: '16px', background: '#f0f7f3', border: '1px dashed #2e7d32', borderRadius: '8px', padding: '16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', color: '#1b5e20', fontWeight: 700, fontSize: '13px' }}>
+                        <FileUp size={18} />
+                        <span>Upload Degree, TVET Diploma or License Proof (Defeats &ldquo;No Local Talent&rdquo; Pretext)</span>
+                      </div>
+                      <p style={{ fontSize: '12px', color: '#446852', margin: '0 0 10px' }}>
+                        Attach your university diploma, TVET certificate, or heavy machinery operator license (PDF, JPG, PNG). GGCDC uses this verifiable proof to legally compel concessionaires to hire local citizens.
+                      </p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                        <input
+                          type="file"
+                          accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                          onChange={handleProofFileUpload}
+                          style={{ fontSize: '13px' }}
+                        />
+                        {talentForm.proofFileName && (
+                          <span style={{ fontSize: '12px', color: '#155724', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <FileCheck size={16} /> Attached: {talentForm.proofFileName} ({talentForm.proofFileSize})
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* TRACK B FIELDS */
+                  <div style={{ background: '#fbfcfc', border: '1px solid #e1e9e4', borderRadius: '8px', padding: '18px' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', color: '#854d0e', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <HardHat size={16} /> 2. Workforce Development &amp; Desired Apprenticeship Trade (Track B)
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginBottom: '14px' }}>
+                      <div>
+                        <label style={{ fontSize: '13px', fontWeight: 600, color: '#274b41', display: 'block', marginBottom: '6px' }}>
+                          Desired Vocational Apprenticeship Trade *
+                        </label>
+                        <select
+                          value={talentForm.desiredTrade}
+                          onChange={(e) => setTalentForm({ ...talentForm, desiredTrade: e.target.value })}
+                          style={{ width: '100%', height: '38px', borderRadius: '6px', border: '1px solid #d5ded9', padding: '0 10px', fontSize: '13px' }}
+                        >
+                          <option>Heavy Haul Mining Truck Operator (CAT 777/785)</option>
+                          <option>Drill Rig &amp; Blasting Assistant</option>
+                          <option>Industrial Welding &amp; Metal Fabrication Apprentice</option>
+                          <option>Industrial Solar &amp; Camp Electrical Maintenance</option>
+                          <option>Heavy Plant &amp; Mechanical Maintenance Helper</option>
+                          <option>Mine Surveying &amp; Ore Grade Sampling Helper</option>
+                          <option>Camp Catering, Hospitality &amp; Food Services</option>
+                          <option>Light Vehicle &amp; Fleet Mechanic Trainee</option>
+                          <option>Mine Site Safety &amp; Physical Security Guard</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '13px', fontWeight: 600, color: '#274b41', display: 'block', marginBottom: '6px' }}>
+                          Highest Schooling Level Attained
+                        </label>
+                        <select
+                          value={talentForm.schoolingLevel}
+                          onChange={(e) => setTalentForm({ ...talentForm, schoolingLevel: e.target.value })}
+                          style={{ width: '100%', height: '38px', borderRadius: '6px', border: '1px solid #d5ded9', padding: '0 10px', fontSize: '13px' }}
+                        >
+                          <option>High School Graduate (12th Grade Passed)</option>
+                          <option>High School Leaver (Completed 10th - 11th Grade)</option>
+                          <option>Junior High School (Completed 9th Grade)</option>
+                          <option>Primary Schooling / Literacy Program</option>
+                          <option>Informal / Practical Apprenticeship Learner</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '13px', fontWeight: 600, color: '#274b41', display: 'block', marginBottom: '6px' }}>
+                          Prior Practical Experience / Mechanical Exposure
+                        </label>
+                        <select
+                          value={talentForm.priorExperience}
+                          onChange={(e) => setTalentForm({ ...talentForm, priorExperience: e.target.value })}
+                          style={{ width: '100%', height: '38px', borderRadius: '6px', border: '1px solid #d5ded9', padding: '0 10px', fontSize: '13px' }}
+                        >
+                          <option>Informal Helper / Ready to Learn</option>
+                          <option>Motorcycle / Generator Repair Experience</option>
+                          <option>Farm Tool &amp; Chainsaw Operator</option>
+                          <option>Masonry / Carpentry Laborer</option>
+                          <option>Camp Security / Watchman Experience</option>
+                          <option>Commercial Driver (Light Vehicle / Motorbike)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '13px', fontWeight: 600, color: '#274b41', display: 'block', marginBottom: '6px' }}>
+                          Community Sponsor / Elder Reference *
+                        </label>
+                        <Input
+                          value={talentForm.communityReference}
+                          onChange={(e) => setTalentForm({ ...talentForm, communityReference: e.target.value })}
+                          placeholder="e.g. Town Chief Sampson Gaye, Tiama Women Chair"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '13px', fontWeight: 600, color: '#274b41', display: 'block', marginBottom: '6px' }}>
+                        Candidate Background &amp; Motivation for Training
+                      </label>
+                      <Textarea
+                        rows={2}
+                        value={talentForm.backgroundNotes}
+                        onChange={(e) => setTalentForm({ ...talentForm, backgroundNotes: e.target.value })}
+                        placeholder="State why you are eager to learn this trade, past manual work experience, and commitment to the community..."
+                      />
+                    </div>
+
+                    {/* RESIDENCY / VOTER PROOF UPLOAD */}
+                    <div style={{ marginTop: '16px', background: '#fffbeb', border: '1px dashed #b45309', borderRadius: '8px', padding: '16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', color: '#92400e', fontWeight: 700, fontSize: '13px' }}>
+                        <FileUp size={18} />
+                        <span>Upload Community Residency Proof / National ID (MDA TVET Fund Eligibility)</span>
+                      </div>
+                      <p style={{ fontSize: '12px', color: '#78350f', margin: '0 0 10px' }}>
+                        Under the Mineral Development Agreement, concession-sponsored TVET seats are reserved for Grand Gedeh residents. Attach your National ID, Voter Registration Card, or letter from your Town Chief.
+                      </p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                        <input
+                          type="file"
+                          accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                          onChange={handleProofFileUpload}
+                          style={{ fontSize: '13px' }}
+                        />
+                        {talentForm.proofFileName && (
+                          <span style={{ fontSize: '12px', color: '#92400e', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <FileCheck size={16} /> Attached: {talentForm.proofFileName} ({talentForm.proofFileSize})
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* MANDATORY CONSENT CHECKBOX */}
+                <div style={{ background: '#f5f7f6', border: '1px solid #d5ded9', borderRadius: '8px', padding: '14px 18px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                  <input
+                    type="checkbox"
+                    id="talentConsentCheck"
+                    checked={talentForm.consent}
+                    onChange={(e) => setTalentForm({ ...talentForm, consent: e.target.checked })}
+                    style={{ marginTop: '3px', cursor: 'pointer' }}
+                    required
+                  />
+                  <label htmlFor="talentConsentCheck" style={{ fontSize: '13px', color: '#24362f', cursor: 'pointer', lineHeight: '1.5' }}>
+                    <strong>Mandatory Civic Consent:</strong> I verify that all submitted qualifications and residency details are truthful. I consent to the Grand Gedeh Citizens Development Council (GGCDC) storing and sharing my profile with Concessionaire HR departments, subcontractors, and TVET institutes solely for employment placement and apprenticeship sponsorship under the Mineral Development Agreement.
+                  </label>
+                </div>
+
+                {/* SUBMIT BUTTON */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                  <Button
+                    type="submit"
+                    className="primary"
+                    style={{ height: '42px', padding: '0 24px', fontSize: '14px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}
+                  >
+                    <Send size={16} /> Submit Candidate Profile &amp; Generate Tracking ID
+                  </Button>
+                </div>
+              </form>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* VIEW 2: PUBLIC TALENT REGISTRY DIRECTORY */}
+      {talentView === 'directory' && (
+        <div>
+          {/* STATS TILES */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '22px' }}>
+            <div style={{ background: '#f4f9f6', border: '1px solid #cfe2d8', borderRadius: '8px', padding: '14px 18px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, color: '#133e36', textTransform: 'uppercase' }}>Total Registered Talent</div>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: '#133e36', margin: '4px 0 0' }}>{records.filter(r => r.module === 'workforce').length}</div>
+            </div>
+            <div style={{ background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: '8px', padding: '14px 18px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, color: '#3730a3', textTransform: 'uppercase' }}>Track A: Certified Pros</div>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: '#3730a3', margin: '4px 0 0' }}>{workforceCandidates.filter(c => c.trackType === 'Track A').length}</div>
+            </div>
+            <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '14px 18px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, color: '#92400e', textTransform: 'uppercase' }}>Track B: TVET Trainees</div>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: '#92400e', margin: '4px 0 0' }}>{workforceCandidates.filter(c => c.trackType === 'Track B').length}</div>
+            </div>
+            <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '14px 18px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, color: '#166534', textTransform: 'uppercase' }}>Active Endorsements</div>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: '#166534', margin: '4px 0 0' }}>{workforceCandidates.filter(c => c.consent).length}</div>
+            </div>
+          </div>
+
+          {/* FILTERS */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <Button
+                variant={matcherTrackFilter === 'All' ? 'default' : 'outline'}
+                size="sm"
+                className={matcherTrackFilter === 'All' ? 'primary' : ''}
+                onClick={() => setMatcherTrackFilter('All')}
+              >
+                All Tracks
+              </Button>
+              <Button
+                variant={matcherTrackFilter === 'Track A' ? 'default' : 'outline'}
+                size="sm"
+                className={matcherTrackFilter === 'Track A' ? 'primary' : ''}
+                onClick={() => setMatcherTrackFilter('Track A')}
+              >
+                Track A: Certified
+              </Button>
+              <Button
+                variant={matcherTrackFilter === 'Track B' ? 'default' : 'outline'}
+                size="sm"
+                className={matcherTrackFilter === 'Track B' ? 'primary' : ''}
+                onClick={() => setMatcherTrackFilter('Track B')}
+              >
+                Track B: TVET Trainees
+              </Button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <select
+                value={matcherTrade}
+                onChange={(e) => setMatcherTrade(e.target.value)}
+                style={{ height: '36px', borderRadius: '6px', border: '1px solid #d5ded9', padding: '0 10px', fontSize: '13px' }}
+              >
+                <option value="All">All Trades &amp; Specializations</option>
+                <option value="Operator">Equipment / Truck Operators</option>
+                <option value="Welder">Welding &amp; Metal Fabrication</option>
+                <option value="Environmental">Environmental &amp; Water</option>
+                <option value="Electrical">Solar &amp; Electrical</option>
+                <option value="Logistics">Logistics &amp; Supply Chain</option>
+                <option value="Drill">Drill &amp; Blasting Assistant</option>
+              </select>
+
+              <select
+                value={matcherMinExp}
+                onChange={(e) => setMatcherMinExp(Number(e.target.value))}
+                style={{ height: '36px', borderRadius: '6px', border: '1px solid #d5ded9', padding: '0 10px', fontSize: '13px' }}
+              >
+                <option value="0">Any Experience</option>
+                <option value="3">3+ Years Experience</option>
+                <option value="5">5+ Years Experience</option>
+                <option value="8">8+ Years Experience</option>
+              </select>
+            </div>
+          </div>
+
+          {/* TABLE OF CANDIDATES */}
+          <div className="tableWrap">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Candidate &amp; Community</TableHead>
+                  <TableHead>Track &amp; Designation</TableHead>
+                  <TableHead>Qualifications &amp; Institution</TableHead>
+                  <TableHead>Proof Document</TableHead>
+                  <TableHead>Endorsement / Recommendation</TableHead>
+                  <TableHead style={{ textAlign: 'right' }}>Official Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {workforceCandidates.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} style={{ textAlign: 'center', padding: '30px', color: '#687b73' }}>
+                      No candidates found matching the selected filter criteria.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  workforceCandidates.map((c) => (
+                    <TableRow key={c.id}>
+                      <TableCell>
+                        <strong style={{ color: '#11352f', display: 'block' }}>{c.name}</strong>
+                        <small style={{ color: '#6c8077' }}>{c.community}, Grand Gedeh</small>
+                      </TableCell>
+                      <TableCell>
+                        <span style={{
+                          display: 'inline-block',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          padding: '2px 8px',
+                          borderRadius: '12px',
+                          background: c.trackType === 'Track A' ? '#e0e7ff' : '#fef3c7',
+                          color: c.trackType === 'Track A' ? '#3730a3' : '#92400e',
+                          marginBottom: '4px'
+                        }}>
+                          {c.trackType === 'Track A' ? 'Track A (Certified)' : 'Track B (TVET Trainee)'}
+                        </span>
+                        <div style={{ fontSize: '13px', fontWeight: 600, color: '#1a2e26' }}>{c.occupation}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div style={{ fontSize: '13px', fontWeight: 500 }}>{c.qualification}</div>
+                        <small style={{ color: '#687b73', display: 'block' }}>{c.institution}</small>
+                      </TableCell>
+                      <TableCell>
+                        <span style={{ fontSize: '12px', color: '#2e7d32', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
+                          <FileCheck size={14} /> {c.proofDocument.length > 28 ? c.proofDocument.slice(0, 26) + '…' : c.proofDocument}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span style={{
+                          display: 'inline-block',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          background: c.trackType === 'Track A' ? '#e8f5e9' : '#fff3e0',
+                          color: c.trackType === 'Track A' ? '#2e7d32' : '#e65100'
+                        }}>
+                          {c.recommendationStatus}
+                        </span>
+                        <small style={{ display: 'block', color: '#6c8077', marginTop: '2px' }}>{c.endorsement}</small>
+                      </TableCell>
+                      <TableCell style={{ textAlign: 'right' }}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setRecommendationModalCandidate(c)}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: 600 }}
+                        >
+                          <Printer size={13} /> View Endorsement
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -1719,6 +2643,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
             </div>
           </div>
         </footer>
+        {renderRecommendationModal()}
       </div>
     );
   }
@@ -2169,35 +3094,65 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
                     <div>
                       <h3 style={{ font: '700 20px Georgia', margin: 0, color: '#133e36' }}>
-                        Community Workforce Matcher
+                        Community Workforce Matcher &amp; Recommendation Engine
                       </h3>
                       <p style={{ fontSize: '14px', color: '#687b73', margin: '4px 0 0' }}>
-                        Match verified Grand Gedean tradespeople and professionals to mining contractor recruitment quotas with consent safeguards.
+                        Match verified Grand Gedean tradespeople and trainees to mining contractor recruitment quotas with official GGCDC legal endorsements.
                       </p>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '12px' }}>
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                      {/* Track Filter Toggle */}
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <Button
+                          variant={matcherTrackFilter === 'All' ? 'default' : 'outline'}
+                          size="sm"
+                          className={matcherTrackFilter === 'All' ? 'primary' : ''}
+                          onClick={() => setMatcherTrackFilter('All')}
+                        >
+                          All
+                        </Button>
+                        <Button
+                          variant={matcherTrackFilter === 'Track A' ? 'default' : 'outline'}
+                          size="sm"
+                          className={matcherTrackFilter === 'Track A' ? 'primary' : ''}
+                          onClick={() => setMatcherTrackFilter('Track A')}
+                        >
+                          Track A (Certified)
+                        </Button>
+                        <Button
+                          variant={matcherTrackFilter === 'Track B' ? 'default' : 'outline'}
+                          size="sm"
+                          className={matcherTrackFilter === 'Track B' ? 'primary' : ''}
+                          onClick={() => setMatcherTrackFilter('Track B')}
+                        >
+                          Track B (Trainees)
+                        </Button>
+                      </div>
+
                       <select
                         value={matcherTrade}
                         onChange={(e) => setMatcherTrade(e.target.value)}
-                        style={{ height: '38px', borderRadius: '6px', border: '1px solid #d5ded9', padding: '0 10px' }}
+                        style={{ height: '36px', borderRadius: '6px', border: '1px solid #d5ded9', padding: '0 10px', fontSize: '13px' }}
                       >
-                        <option value="All">All Trades & Occupations</option>
-                        <option value="Operator">Heavy Equipment Operators</option>
-                        <option value="Welder">Welding & Fabrication</option>
-                        <option value="Environmental">Environmental Scientists</option>
-                        <option value="Logistics">Supply Chain & Logistics</option>
+                        <option value="All">All Trades &amp; Specializations</option>
+                        <option value="Operator">Equipment / Truck Operators</option>
+                        <option value="Welder">Welding &amp; Metal Fabrication</option>
+                        <option value="Environmental">Environmental &amp; Water</option>
+                        <option value="Electrical">Solar &amp; Electrical</option>
+                        <option value="Logistics">Logistics &amp; Supply Chain</option>
+                        <option value="Drill">Drill &amp; Blasting Assistant</option>
                       </select>
 
                       <select
                         value={matcherMinExp}
                         onChange={(e) => setMatcherMinExp(Number(e.target.value))}
-                        style={{ height: '38px', borderRadius: '6px', border: '1px solid #d5ded9', padding: '0 10px' }}
+                        style={{ height: '36px', borderRadius: '6px', border: '1px solid #d5ded9', padding: '0 10px', fontSize: '13px' }}
                       >
                         <option value="0">Any Experience</option>
+                        <option value="3">3+ Years Experience</option>
                         <option value="5">5+ Years Experience</option>
                         <option value="8">8+ Years Experience</option>
-                        <option value="10">10+ Years Experience</option>
                       </select>
                     </div>
                   </div>
@@ -2206,36 +3161,83 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Candidate & Location</TableHead>
-                          <TableHead>Trade / Occupation</TableHead>
-                          <TableHead>Experience</TableHead>
-                          <TableHead>Qualifications & Certification</TableHead>
-                          <TableHead>Consent Verified</TableHead>
+                          <TableHead>Candidate &amp; Location</TableHead>
+                          <TableHead>Track &amp; Role</TableHead>
+                          <TableHead>Qualifications &amp; Institution</TableHead>
+                          <TableHead>Proof Document</TableHead>
+                          <TableHead>Endorsement / Recommendation</TableHead>
                           <TableHead>Availability</TableHead>
+                          <TableHead style={{ textAlign: 'right' }}>Official Instrument</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {workforceCandidates.map((c) => (
-                          <TableRow key={c.id}>
-                            <TableCell>
-                              <strong>{c.name}</strong>
-                              <small>{c.community}, Grand Gedeh</small>
+                        {workforceCandidates.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={7} style={{ textAlign: 'center', padding: '30px', color: '#687b73' }}>
+                              No candidates found matching the selected filter criteria.
                             </TableCell>
-                            <TableCell>{c.occupation}</TableCell>
-                            <TableCell>{c.experience} Years</TableCell>
-                            <TableCell><small>{c.qualification}</small></TableCell>
-                            <TableCell>
-                              {c.consent ? (
-                                <span style={{ color: '#2e7d32', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                  <ShieldCheck size={16} /> Yes (Recorded)
-                                </span>
-                              ) : (
-                                <span style={{ color: '#c62828' }}>No consent</span>
-                              )}
-                            </TableCell>
-                            <TableCell><span className="status in-progress">{c.availability}</span></TableCell>
                           </TableRow>
-                        ))}
+                        ) : (
+                          workforceCandidates.map((c) => (
+                            <TableRow key={c.id}>
+                              <TableCell>
+                                <strong style={{ color: '#11352f', display: 'block' }}>{c.name}</strong>
+                                <small style={{ color: '#6c8077' }}>{c.community}, Grand Gedeh</small>
+                              </TableCell>
+                              <TableCell>
+                                <span style={{
+                                  display: 'inline-block',
+                                  fontSize: '11px',
+                                  fontWeight: 700,
+                                  padding: '2px 8px',
+                                  borderRadius: '12px',
+                                  background: c.trackType === 'Track A' ? '#e0e7ff' : '#fef3c7',
+                                  color: c.trackType === 'Track A' ? '#3730a3' : '#92400e',
+                                  marginBottom: '4px'
+                                }}>
+                                  {c.trackType === 'Track A' ? 'Track A (Certified)' : 'Track B (TVET Trainee)'}
+                                </span>
+                                <div style={{ fontSize: '13px', fontWeight: 600 }}>{c.occupation}</div>
+                              </TableCell>
+                              <TableCell>
+                                <div style={{ fontSize: '13px' }}>{c.qualification}</div>
+                                <small style={{ color: '#687b73' }}>{c.institution}</small>
+                              </TableCell>
+                              <TableCell>
+                                <span style={{ fontSize: '12px', color: '#2e7d32', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
+                                  <FileCheck size={14} /> {c.proofDocument.length > 24 ? c.proofDocument.slice(0, 22) + '…' : c.proofDocument}
+                                </span>
+                              </TableCell>
+                              <TableCell>
+                                <span style={{
+                                  display: 'inline-block',
+                                  fontSize: '11px',
+                                  fontWeight: 700,
+                                  padding: '2px 8px',
+                                  borderRadius: '4px',
+                                  background: c.trackType === 'Track A' ? '#e8f5e9' : '#fff3e0',
+                                  color: c.trackType === 'Track A' ? '#2e7d32' : '#e65100'
+                                }}>
+                                  {c.recommendationStatus}
+                                </span>
+                                <small style={{ display: 'block', color: '#6c8077', marginTop: '2px' }}>{c.endorsement}</small>
+                              </TableCell>
+                              <TableCell>
+                                <span className="status in-progress">{c.availability}</span>
+                              </TableCell>
+                              <TableCell style={{ textAlign: 'right' }}>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setRecommendationModalCandidate(c)}
+                                  style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: 600 }}
+                                >
+                                  <Printer size={13} /> View Letter
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
                       </TableBody>
                     </Table>
                   </div>
@@ -2822,6 +3824,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
           </div>
         </DialogContent>
       </Dialog>
+      {renderRecommendationModal()}
     </div>
   );
 }
