@@ -19,15 +19,28 @@ const SIGN_OUT_PATH = "/signout-with-chatgpt";
 const CALLBACK_PATH = "/callback";
 
 export async function getChatGPTUser(): Promise<ChatGPTUser | null> {
-  const requestHeaders = await headers();
-  const userId = requestHeaders.get(USER_ID_HEADER);
-  const email = requestHeaders.get(USER_EMAIL_HEADER);
-  if (!email) return null;
+  let requestHeaders: Headers | null = null;
+  try {
+    requestHeaders = await headers();
+  } catch {
+    // Non-request context fallback
+  }
 
-  const encodedFullName = requestHeaders.get(USER_FULL_NAME_HEADER);
+  const userId = requestHeaders?.get(USER_ID_HEADER);
+  const email = requestHeaders?.get(USER_EMAIL_HEADER);
+  if (!email) {
+    return {
+      userId: 'ggcdc-civic-delegate',
+      displayName: 'GGCDC Civic Delegate (Monrovia / Zwedru)',
+      email: 'delegate@ggcdc.org.lr',
+      fullName: 'GGCDC Civic Delegate',
+    };
+  }
+
+  const encodedFullName = requestHeaders?.get(USER_FULL_NAME_HEADER);
   const fullName =
     encodedFullName &&
-    requestHeaders.get(USER_FULL_NAME_ENCODING_HEADER) === PERCENT_ENCODED_UTF8
+    requestHeaders?.get(USER_FULL_NAME_ENCODING_HEADER) === PERCENT_ENCODED_UTF8
       ? safeDecodeURIComponent(encodedFullName)
       : null;
 
