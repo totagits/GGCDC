@@ -2180,9 +2180,9 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
     const isPdfFile = proofFileData && (proofFileData.startsWith('data:application/pdf') || proofFileType === 'application/pdf');
 
     // Determine credential document classification
-    const isOperator = occupation.toLowerCase().includes('operator') || (details.skills || '').toLowerCase().includes('cat') || (details.skills || '').toLowerCase().includes('dozer');
-    const isAcademic = !isOperator && !isTrackB && isWorkforce;
     const isResidency = isTrackB;
+    const isOperator = !isResidency && (occupation.toLowerCase().includes('operator') || (details.skills || '').toLowerCase().includes('cat') || (details.skills || '').toLowerCase().includes('dozer'));
+    const isAcademic = !isOperator && !isResidency && isWorkforce;
     const isBusiness = !isWorkforce;
 
     // Simulated cryptographic hash for document audit
