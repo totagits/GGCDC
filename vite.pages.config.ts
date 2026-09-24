@@ -12,6 +12,6 @@ export default defineConfig({
   base: './', // Relative base path ensures GitHub Pages works seamlessly on any subpath e.g. https://totagits.github.io/GGCDC/
   build: {
     outDir: 'dist-pages',
-    emptyOutDir: true,
+    emptyOutDir: false,
   },
 });
