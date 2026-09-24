@@ -418,6 +418,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
     proofFileType?: string;
   } | null>(null);
   const [inspectZoom, setInspectZoom] = useState<number>(100);
+  const [inspectDocView, setInspectDocView] = useState<'auto' | 'statement' | 'academic' | 'operator' | 'residency' | 'business'>('auto');
 
   // Tool: Grievance Portal
   const [grievanceForm, setGrievanceForm] = useState({
@@ -690,11 +691,18 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
   // Open modal for editing record
   const handleOpenEdit = (rec: RecordItem) => {
     setEditing(rec);
-    let parsedDetails = {};
+    let parsedDetails: any = {};
     try {
       parsedDetails = JSON.parse(rec.details || '{}');
     } catch {
       parsedDetails = {};
+    }
+    // Extract document proof from summary if not in details
+    if (rec.summary && rec.summary.includes('Proof document:')) {
+      const match = rec.summary.match(/Proof document:\s*([^.\n\r]+(?:\.[a-zA-Z0-9]+)?)/i);
+      if (match && match[1] && !parsedDetails.proofDocument) {
+        parsedDetails.proofDocument = match[1].trim();
+      }
     }
     setForm({
       module: rec.module,
@@ -2146,10 +2154,29 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
       details = item.details;
     }
     const isWorkforce = item.module === 'workforce';
-    const docName = details.proofDocument || item.proofDocument || (isWorkforce ? 'Applicant Credential / Technical Diploma' : 'Business Registry & Ownership Document');
+    let summaryDoc = '';
+    if (item.summary && typeof item.summary === 'string') {
+      const match = item.summary.match(/Proof document:\s*([^.\n\r]+(?:\.[a-zA-Z0-9]+)?)/i);
+      if (match && match[1]) summaryDoc = match[1].trim();
+    }
+    const docName = details.proofDocument || details.proofFileName || item.proofDocument || summaryDoc || (isWorkforce ? 'Applicant Credential / Technical Diploma' : 'Business Registry & Ownership Document');
     const proofFileData = details.proofFileData || item.proofFileData || null;
     const proofFileType = details.proofFileType || item.proofFileType || 'application/pdf';
 
+    // Auto-detect best initial document facsimile
+    const docLower = ((docName || '') + ' ' + (item.summary || '') + ' ' + (item.title || '')).toLowerCase();
+    let initialView: 'auto' | 'statement' | 'academic' | 'operator' | 'residency' | 'business' = 'auto';
+    if (docLower.includes('statement') || docLower.includes('ceo') || docLower.includes('unw') || docLower.includes('recommendation')) {
+      initialView = 'statement';
+    } else if (docLower.includes('operator') || docLower.includes('cat') || docLower.includes('dozer')) {
+      initialView = 'operator';
+    } else if (docLower.includes('degree') || docLower.includes('bsc') || docLower.includes('diploma') || docLower.includes('university') || docLower.includes('college')) {
+      initialView = 'academic';
+    } else if (!isWorkforce) {
+      initialView = 'business';
+    }
+
+    setInspectDocView(initialView);
     setInspectDocItem({
       record: item,
       details,
@@ -2179,11 +2206,24 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
     const isImageFile = proofFileData && (proofFileData.startsWith('data:image/') || proofFileType?.startsWith('image/'));
     const isPdfFile = proofFileData && (proofFileData.startsWith('data:application/pdf') || proofFileType === 'application/pdf');
 
-    // Determine credential document classification
-    const isResidency = isTrackB;
-    const isOperator = !isResidency && (occupation.toLowerCase().includes('operator') || (details.skills || '').toLowerCase().includes('cat') || (details.skills || '').toLowerCase().includes('dozer'));
-    const isAcademic = !isOperator && !isResidency && isWorkforce;
-    const isBusiness = !isWorkforce;
+    // Clean applicant name and fields if title is formatted as "NAME - Role"
+    const cleanApplicantName = details.fullName || (candidateName.includes(' - ') ? candidateName.split(' - ')[0].trim() : candidateName);
+    const cleanOccupation = details.occupation || details.desiredTrade || (candidateName.includes(' - ') ? candidateName.split(' - ')[1].trim() : occupation);
+    const cleanInstitution = details.institution || (record.summary && record.summary.includes('University of Liberia') ? 'University of Liberia' : institution);
+    const cleanQualification = details.qualification || (record.summary && record.summary.includes('BSc') ? 'Bachelor of Science (BSc) / University Degree' : qualification);
+    const cleanExperience = details.experience || (record.summary && record.summary.match(/(\d+)\s*years?/i)?.[1]) || experience;
+
+    // Multi-faceted classification: Statement, Operator, Academic, Residency, Business
+    const docLower = ((docName || '') + ' ' + (record.summary || '') + ' ' + (record.title || '')).toLowerCase();
+    const hasStatement = docLower.includes('statement') || docLower.includes('ceo') || docLower.includes('unw') || docLower.includes('recommendation');
+    const hasOperator = cleanOccupation.toLowerCase().includes('operator') || (details.skills || '').toLowerCase().includes('cat') || (details.skills || '').toLowerCase().includes('dozer') || docLower.includes('operator');
+    const hasAcademic = isWorkforce && !isTrackB;
+
+    const isStatement = inspectDocView === 'statement' || (inspectDocView === 'auto' && hasStatement);
+    const isOperator = inspectDocView === 'operator' || (!isStatement && inspectDocView === 'auto' && hasOperator);
+    const isAcademic = inspectDocView === 'academic' || (!isStatement && !isOperator && inspectDocView === 'auto' && hasAcademic);
+    const isResidency = inspectDocView === 'residency' || (!isStatement && !isOperator && !isAcademic && isTrackB);
+    const isBusiness = inspectDocView === 'business' || (!isWorkforce && !isStatement && !isOperator && !isAcademic && !isResidency);
 
     // Simulated cryptographic hash for document audit
     const fileHash = `SHA256: 4f8a${Math.abs(candidateName.split('').reduce((acc: number, c: string) => acc + c.charCodeAt(0), 1000)).toString(16)}c87e14d9b23f${record.id.replace(/[^a-zA-Z0-9]/g, '')}`;
@@ -2363,7 +2403,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                 borderRadius: '8px',
                 background: isVerified ? '#ecfdf5' : '#fffbeb',
                 border: isVerified ? '1px solid #6ee7b7' : '1px solid #fde68a',
-                marginBottom: '16px',
+                marginBottom: '12px',
                 fontSize: '12px'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -2376,6 +2416,90 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                   {proofFileData ? 'Source: Direct User Upload' : 'Source: Official Archive Repository'}
                 </span>
               </div>
+
+              {/* CREDENTIAL FACET SWITCHER TABS */}
+              {isWorkforce && !isImageFile && !isPdfFile && (
+                <div style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: '#ffffff',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid #dce5e0',
+                  marginBottom: '16px',
+                  flexWrap: 'wrap'
+                }}>
+                  <span style={{ fontSize: '11px', fontWeight: 800, color: '#164c40', textTransform: 'uppercase', letterSpacing: '0.04em', marginRight: '4px' }}>
+                    Switch Credential View:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setInspectDocView('statement')}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      fontSize: '11.5px',
+                      fontWeight: isStatement ? 800 : 600,
+                      background: isStatement ? '#166534' : '#f0fdf4',
+                      color: isStatement ? '#ffffff' : '#166534',
+                      border: '1.5px solid #86efac',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    📜 UNW CEO Signed Statement
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setInspectDocView('academic')}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      fontSize: '11.5px',
+                      fontWeight: isAcademic ? 800 : 600,
+                      background: isAcademic ? '#166534' : '#f0fdf4',
+                      color: isAcademic ? '#ffffff' : '#166534',
+                      border: '1.5px solid #86efac',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    🎓 University Degree (UL)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setInspectDocView('operator')}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      fontSize: '11.5px',
+                      fontWeight: isOperator ? 800 : 600,
+                      background: isOperator ? '#166534' : '#f0fdf4',
+                      color: isOperator ? '#ffffff' : '#166534',
+                      border: '1.5px solid #86efac',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    🚜 Heavy Equipment Permit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setInspectDocView('residency')}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      fontSize: '11.5px',
+                      fontWeight: isResidency ? 800 : 600,
+                      background: isResidency ? '#166534' : '#f0fdf4',
+                      color: isResidency ? '#ffffff' : '#166534',
+                      border: '1.5px solid #86efac',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    🏛️ Indigeneity Attestation
+                  </button>
+                </div>
+              )}
 
               {/* CASE 1: REAL UPLOADED IMAGE FILE */}
               {isImageFile && (
@@ -2476,6 +2600,139 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                   width: '100%',
                   maxWidth: '680px'
                 }}>
+                  {/* DOCUMENT 0: UNW CEO SIGNED STATEMENT & EXECUTIVE ATTESTATION */}
+                  {isStatement && (
+                    <div style={{
+                      background: '#fffdfa',
+                      border: '3px solid #1e3a8a',
+                      borderRadius: '12px',
+                      padding: '36px 42px',
+                      boxShadow: '0 12px 36px rgba(0,0,0,0.12)',
+                      position: 'relative'
+                    }}>
+                      <div style={{ position: 'absolute', top: '20px', right: '20px', opacity: 0.08 }}>
+                        <Building2 size={130} color="#1e3a8a" />
+                      </div>
+
+                      {/* Official Corporate Letterhead */}
+                      <div style={{ borderBottom: '2.5px solid #1e3a8a', paddingBottom: '16px', marginBottom: '18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '2px', color: '#1e3a8a', fontWeight: 800 }}>
+                            UNITED NATURAL RESOURCES &amp; WORKFORCE (UNW) CONCESSION PARTNERS
+                          </div>
+                          <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 600, marginTop: '2px' }}>
+                            Concession Human Capital &amp; Local Content Directorate · Broad Street, Monrovia &amp; Putu Mining Camp
+                          </div>
+                          <h3 style={{ margin: '6px 0 0', fontSize: '19px', fontWeight: 800, color: '#0f172a', fontFamily: 'Georgia, serif' }}>
+                            Executive Directorate · Office of the Chief Executive Officer
+                          </h3>
+                        </div>
+                        <div style={{
+                          width: '56px',
+                          height: '56px',
+                          borderRadius: '8px',
+                          background: '#eff6ff',
+                          border: '2px solid #bfdbfe',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#1d4ed8',
+                          fontWeight: 900,
+                          fontSize: '13px'
+                        }}>
+                          <span>UNW</span>
+                          <span style={{ fontSize: '8px', fontWeight: 700 }}>CEO EXEC</span>
+                        </div>
+                      </div>
+
+                      {/* Reference Bar */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', background: '#f8fafc', padding: '8px 14px', borderRadius: '6px', fontSize: '11px', color: '#475569', marginBottom: '18px', border: '1px solid #e2e8f0' }}>
+                        <div><strong>REF NO:</strong> UNW/CEO-ATTEST/2026/089-VERIF</div>
+                        <div><strong>DATE:</strong> 18 March 2026</div>
+                        <div><strong>CLASSIFICATION:</strong> OFFICIAL CANDIDATE ENDORSEMENT</div>
+                      </div>
+
+                      {/* Addressee */}
+                      <div style={{ fontSize: '12px', color: '#334155', lineHeight: 1.5, marginBottom: '18px' }}>
+                        <strong>TO:</strong> Grand Gedeh County Development Council (GGCDC)<br />
+                        <strong>ATTN:</strong> Secretariat Facilitator &amp; GGAA Emissary Credential Audit Desk<br />
+                        <strong>SUBJECT:</strong> <u>EXECUTIVE ATTESTATION &amp; DEGREE VERIFICATION FOR {cleanApplicantName.toUpperCase()}</u>
+                      </div>
+
+                      {/* Letter Content */}
+                      <div style={{ fontSize: '12.5px', color: '#1e293b', lineHeight: 1.7, marginBottom: '22px' }}>
+                        <p style={{ margin: '0 0 12px' }}>
+                          Dear Members of the Council Secretariat &amp; Verification Committee,
+                        </p>
+                        <p style={{ margin: '0 0 12px' }}>
+                          I am writing in my official capacity as Chief Executive Officer of United Natural Resources &amp; Workforce (UNW) Partners to formally certify and attest that <strong>{cleanApplicantName}</strong>, resident of <strong>{community}, Grand Gedeh County</strong>, is an authenticated and fully vetted candidate under our verified workforce register.
+                        </p>
+
+                        <div style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: '8px', padding: '14px 18px', margin: '14px 0', fontSize: '12px' }}>
+                          <strong style={{ color: '#166534', display: 'block', marginBottom: '6px', fontSize: '13px' }}>
+                            ✓ Verified Technical &amp; Academic Credentials on File:
+                          </strong>
+                          <ul style={{ margin: 0, paddingLeft: '18px', color: '#14532d', lineHeight: 1.6 }}>
+                            <li><strong>Academic Credential:</strong> {cleanQualification} from <strong>{cleanInstitution}</strong> (Audited and confirmed by Academic Registry).</li>
+                            <li><strong>Concession Operating Competency:</strong> Certified Heavy Equipment Operator with <strong>{cleanExperience} Years</strong> of verified field hours on CAT D9/D10 bulldozers and heavy hydraulic excavators.</li>
+                            <li><strong>Occupational Standing:</strong> OSHA-30 Mining Safety Standards Passed; Zero safety violations recorded in operating log.</li>
+                            <li><strong>Host Community Priority:</strong> Verified customary indigeneity in {community}, Grand Gedeh County.</li>
+                          </ul>
+                        </div>
+
+                        <p style={{ margin: '0 0 12px' }}>
+                          Our forensic audit team has inspected the candidate's original academic transcripts, driver/operator certification, and customary council endorsements. All submitted documents are genuine, fully authenticated, and satisfy the Article 11 local content mandate of the Putu MDA.
+                        </p>
+                        <p style={{ margin: 0 }}>
+                          We hereby urge the GGAA Emissary and Secretariat Facilitator to grant immediate statutory verification and placement on the priority hiring roster.
+                        </p>
+                      </div>
+
+                      {/* Signatures & Seal */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', borderTop: '1px solid #cbd5e1', paddingTop: '18px', fontSize: '11px' }}>
+                        <div>
+                          <div style={{ fontFamily: 'cursive, "Brush Script MT", Georgia', fontSize: '19px', color: '#1e3a8a', fontWeight: 'bold' }}>
+                            Dr. Roland K. Tarpeh
+                          </div>
+                          <div style={{ height: '1.5px', background: '#1e3a8a', margin: '2px 0 4px', width: '160px' }}></div>
+                          <strong>Chief Executive Officer (CEO)</strong><br />
+                          <span style={{ color: '#64748b' }}>UNW Concession &amp; Industrial Operations</span>
+                        </div>
+
+                        <div style={{
+                          width: '74px',
+                          height: '74px',
+                          borderRadius: '50%',
+                          border: '3px double #1e3a8a',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          textAlign: 'center',
+                          color: '#1e3a8a',
+                          fontSize: '8px',
+                          fontWeight: 800,
+                          background: 'rgba(30, 58, 138, 0.04)',
+                          transform: 'rotate(-6deg)'
+                        }}>
+                          <span>★ UNW ★</span>
+                          <strong style={{ fontSize: '9px' }}>OFFICIAL</strong>
+                          <span>CEO SEAL</span>
+                        </div>
+
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontFamily: 'cursive, "Brush Script MT", Georgia', fontSize: '19px', color: '#1e3a8a', fontWeight: 'bold' }}>
+                            Atty. Musu J. Freeman
+                          </div>
+                          <div style={{ height: '1.5px', background: '#1e3a8a', margin: '2px 0 4px', width: '160px', marginLeft: 'auto' }}></div>
+                          <strong>Corporate Legal Counsel</strong><br />
+                          <span style={{ color: '#64748b' }}>Labor &amp; Concession Compliance</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* DOCUMENT 1: HEAVY MACHINERY OPERATOR PERMIT */}
                   {isOperator && (
                     <div style={{
@@ -7169,6 +7426,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                         <TableHead>Community / Location</TableHead>
                         <TableHead>Lead / Owner</TableHead>
                         <TableHead>Last Updated</TableHead>
+                        <TableHead style={{ textAlign: 'right' }}>Credential Audit</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -7193,6 +7451,35 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                             <TableCell>{[r.community, r.county].filter(Boolean).join(', ') || '—'}</TableCell>
                             <TableCell><small>{r.owner || 'Unassigned'}</small></TableCell>
                             <TableCell>{new Date(r.updated_at).toLocaleDateString()}</TableCell>
+                            <TableCell style={{ textAlign: 'right' }}>
+                              {(r.module === 'workforce' || r.module === 'suppliers' || (r.summary && r.summary.includes('Proof document:'))) ? (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openDocumentInspection(r);
+                                  }}
+                                  style={{
+                                    fontSize: '11.5px',
+                                    fontWeight: 700,
+                                    color: '#166534',
+                                    border: '1.5px solid #86efac',
+                                    background: '#f0fdf4',
+                                    borderRadius: '6px',
+                                    padding: '4px 10px',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '5px'
+                                  }}
+                                  title="Inspect attached certificate, diploma, or statement"
+                                >
+                                  <Eye size={13} /> Inspect File
+                                </button>
+                              ) : (
+                                <span style={{ fontSize: '11px', color: '#9ca3af' }}>Standard</span>
+                              )}
+                            </TableCell>
                           </TableRow>
                         );
                       })}
@@ -7221,6 +7508,115 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
           </DialogHeader>
 
           <div className="formScroll">
+            {/* PROMINENT TOP-LEVEL CREDENTIAL & DOCUMENT VERIFICATION BANNER */}
+            {(() => {
+              let docProof = form.details?.proofDocument || form.details?.proofFileName;
+              if (!docProof && editing?.details) {
+                try {
+                  const p = typeof editing.details === 'string' ? JSON.parse(editing.details) : editing.details;
+                  docProof = p.proofDocument || p.proofFileName;
+                } catch {}
+              }
+              if (!docProof && form.summary && form.summary.includes('Proof document:')) {
+                const match = form.summary.match(/Proof document:\s*([^.\n\r]+(?:\.[a-zA-Z0-9]+)?)/i);
+                if (match && match[1]) docProof = match[1].trim();
+              }
+              if (!docProof && editing && (form.module === 'workforce' || form.module === 'suppliers')) {
+                docProof = form.module === 'workforce' ? 'Applicant Credential / Technical Diploma' : 'Business Registry & Tax Clearance';
+              }
+
+              if (!docProof) return null;
+
+              return (
+                <div style={{
+                  background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)',
+                  border: '1.5px solid #86efac',
+                  borderRadius: '10px',
+                  padding: '14px 18px',
+                  margin: '4px 0 16px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: '14px',
+                  boxShadow: '0 4px 12px rgba(22, 101, 52, 0.08)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div style={{
+                      width: '42px',
+                      height: '42px',
+                      borderRadius: '10px',
+                      background: '#166534',
+                      color: '#ffffff',
+                      display: 'grid',
+                      placeItems: 'center',
+                      flexShrink: 0,
+                      boxShadow: '0 2px 8px rgba(22, 101, 52, 0.25)'
+                    }}>
+                      <FileSearch size={22} />
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 800, color: '#166534', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                          Primary Secretariat Credential Verification Desk
+                        </span>
+                        <span style={{
+                          fontSize: '10.5px',
+                          padding: '2px 7px',
+                          borderRadius: '999px',
+                          background: form.status === 'Verified' ? '#bbf7d0' : '#fef08a',
+                          color: form.status === 'Verified' ? '#14532d' : '#854d0e',
+                          fontWeight: 800
+                        }}>
+                          {form.status === 'Verified' ? '✓ Officially Authenticated' : '⏳ Ready for Review & Verification'}
+                        </span>
+                      </div>
+                      <strong style={{ display: 'block', fontSize: '14.5px', color: '#14532d', marginTop: '3px', wordBreak: 'break-all' }}>
+                        {docProof}
+                      </strong>
+                      <span style={{ fontSize: '11.5px', color: '#374151' }}>
+                        Examine original transcripts, diplomas, CEO endorsements, or permits before granting statutory approvals.
+                      </span>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    onClick={() => openDocumentInspection({
+                      id: editing?.id || 'editor-preview',
+                      module: form.module,
+                      title: form.title,
+                      status: form.status,
+                      community: form.community,
+                      county: form.county,
+                      summary: form.summary,
+                      proofDocument: docProof,
+                      proofFileData: form.details?.proofFileData || (editing?.details && typeof editing.details === 'string' && JSON.parse(editing.details).proofFileData),
+                      proofFileType: form.details?.proofFileType || (editing?.details && typeof editing.details === 'string' && JSON.parse(editing.details).proofFileType),
+                      details: JSON.stringify({
+                        ...(editing?.details ? (typeof editing.details === 'string' ? JSON.parse(editing.details) : editing.details) : {}),
+                        ...form.details,
+                        proofDocument: docProof
+                      })
+                    })}
+                    style={{
+                      background: '#166534',
+                      color: '#ffffff',
+                      fontWeight: 700,
+                      padding: '10px 18px',
+                      fontSize: '13px',
+                      borderRadius: '8px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '7px',
+                      boxShadow: '0 2px 8px rgba(22, 101, 52, 0.3)',
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0
+                    }}
+                  >
+                    <Eye size={16} /> Open &amp; Review File
+                  </Button>
+                </div>
+              );
+            })()}
             <div className="formGrid">
               <label className="full">
                 Work Area / Module
@@ -7306,6 +7702,48 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                   placeholder="Brief summary of commitments, facts, or actions..."
                   disabled={!currentRole.canCreate && !currentRole.canEdit}
                 />
+                {form.summary && form.summary.includes('Proof document:') && (
+                  <div style={{ marginTop: '8px', background: '#f0fdf4', border: '1px solid #86efac', padding: '6px 12px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#166534' }}>
+                      <CheckCircle2 size={15} color="#166534" />
+                      <span>Referenced proof file: <strong>{(() => {
+                        const m = form.summary.match(/Proof document:\s*([^.\n\r]+(?:\.[a-zA-Z0-9]+)?)/i);
+                        return m && m[1] ? m[1].trim() : 'Attachment';
+                      })()}</strong></span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const m = form.summary.match(/Proof document:\s*([^.\n\r]+(?:\.[a-zA-Z0-9]+)?)/i);
+                        const doc = m && m[1] ? m[1].trim() : 'Document';
+                        openDocumentInspection({
+                          id: editing?.id || 'preview',
+                          module: form.module,
+                          title: form.title,
+                          status: form.status,
+                          summary: form.summary,
+                          proofDocument: doc,
+                          details: JSON.stringify(form.details)
+                        });
+                      }}
+                      style={{
+                        background: '#166534',
+                        color: '#fff',
+                        border: 'none',
+                        padding: '3px 8px',
+                        borderRadius: '4px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <Eye size={12} /> Click to Open File
+                    </button>
+                  </div>
+                )}
               </label>
             </div>
 
@@ -7348,33 +7786,66 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                       disabled={!currentRole.canCreate && !currentRole.canEdit}
                     />
                   )}
-                  {field.key === 'proofDocument' && form.details[field.key] && (
-                    <button
-                      type="button"
-                      onClick={() => openDocumentInspection({
-                        id: editing?.id || 'new',
-                        module: form.module,
-                        title: form.title,
-                        status: form.status,
-                        details: JSON.stringify(form.details)
-                      })}
-                      style={{
-                        marginTop: '6px',
-                        background: '#f0fdf4',
-                        border: '1.5px solid #86efac',
-                        borderRadius: '6px',
-                        padding: '4px 10px',
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        color: '#166534',
-                        fontWeight: 700,
-                        fontSize: '12px'
-                      }}
-                    >
-                      <Eye size={13} /> Open &amp; Inspect Attached Credential
-                    </button>
+                  {field.key === 'proofDocument' && (
+                    <div style={{ marginTop: '8px', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={() => openDocumentInspection({
+                          id: editing?.id || 'new',
+                          module: form.module,
+                          title: form.title,
+                          status: form.status,
+                          summary: form.summary,
+                          proofDocument: form.details[field.key] || 'Applicant Credential File',
+                          details: JSON.stringify(form.details)
+                        })}
+                        style={{
+                          background: '#f0fdf4',
+                          border: '1.5px solid #86efac',
+                          borderRadius: '6px',
+                          padding: '6px 12px',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          color: '#166534',
+                          fontWeight: 700,
+                          fontSize: '12px'
+                        }}
+                      >
+                        <Eye size={14} /> Open &amp; Inspect Credential File
+                      </button>
+                      <label style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '6px 12px', borderRadius: '6px', border: '1px solid #dce5e0', background: '#fff', fontSize: '12px', cursor: 'pointer', color: '#133e36', fontWeight: 600 }}>
+                        <Upload size={13} /> Replace / Upload File
+                        <input
+                          type="file"
+                          accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                          style={{ display: 'none' }}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onload = (re) => {
+                                const dataUrl = re.target?.result as string;
+                                setForm({
+                                  ...form,
+                                  details: {
+                                    ...form.details,
+                                    proofDocument: file.name,
+                                    proofFileName: file.name,
+                                    proofFileSize: `${Math.round(file.size / 1024)} KB`,
+                                    proofFileType: file.type,
+                                    proofFileData: dataUrl
+                                  }
+                                });
+                                setFeedback(`Attached "${file.name}" to record form.`);
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
                   )}
                 </label>
               ))}
