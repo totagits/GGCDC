@@ -419,6 +419,9 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
   } | null>(null);
   const [inspectZoom, setInspectZoom] = useState<number>(100);
   const [inspectDocView, setInspectDocView] = useState<'auto' | 'statement' | 'academic' | 'operator' | 'residency' | 'business'>('auto');
+  const [requestProofOpen, setRequestProofOpen] = useState<boolean>(false);
+  const [requestProofNote, setRequestProofNote] = useState<string>('');
+  const [requestProofSuccess, setRequestProofSuccess] = useState<boolean>(false);
 
   // Tool: Grievance Portal
   const [grievanceForm, setGrievanceForm] = useState({
@@ -652,7 +655,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
   };
 
   // Request additional proof handler
-  const handleRequestMoreProof = (rec: RecordItem) => {
+  const handleRequestMoreProof = (rec: RecordItem, customNote?: string) => {
     if (!currentRole.canCreate && !currentRole.canEdit) {
       setError(`Your current persona (${currentRole.name}) cannot request documentation updates.`);
       return;
@@ -660,9 +663,13 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
     let detailsObj: any = {};
     try { detailsObj = JSON.parse(rec.details || '{}'); } catch {}
 
+    const noteText = customNote || `Action Required: ${currentRole.badge} requested supplemental proof of residency or legal clearance.`;
+
     const updatedDetails = {
       ...detailsObj,
-      reviewNote: `Action Required: ${currentRole.badge} requested supplemental proof of residency or legal clearance.`
+      reviewNote: noteText,
+      auditDate: new Date().toISOString().split('T')[0],
+      auditedBy: `${currentRole.name} (${currentRole.badge})`
     };
 
     StorageEngine.updateRecord(rec.id, {
@@ -671,7 +678,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
     });
 
     loadData();
-    setFeedback(`Status for ${rec.title} updated to 'Awaiting response' (Additional proof requested).`);
+    setFeedback(`✓ Supplemental proof requested for ${rec.title}. Status updated to 'Awaiting response'.`);
     setTimeout(() => setFeedback(''), 6000);
   };
 
@@ -2177,6 +2184,9 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
     }
 
     setInspectDocView(initialView);
+    setRequestProofOpen(false);
+    setRequestProofSuccess(false);
+    setRequestProofNote(details.reviewNote || '');
     setInspectDocItem({
       record: item,
       details,
@@ -2407,9 +2417,11 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                 fontSize: '12px'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <ShieldCheck size={16} color={isVerified ? '#059669' : '#d97706'} />
-                  <strong style={{ color: isVerified ? '#065f46' : '#92400e' }}>
-                    {isVerified ? 'Officially Authenticated & Cleared for Section 11 Placement' : 'Pending Secretariat Credential Audit & Examination'}
+                  <ShieldCheck size={16} color={isVerified ? '#059669' : (record.status === 'Awaiting response' || record.status === 'Needs Information') ? '#d97706' : '#2563eb'} />
+                  <strong style={{ color: isVerified ? '#065f46' : (record.status === 'Awaiting response' || record.status === 'Needs Information') ? '#92400e' : '#1e40af' }}>
+                    {isVerified ? 'Officially Authenticated & Cleared for Section 11 Placement' :
+                     (record.status === 'Awaiting response' || record.status === 'Needs Information') ? '⚠️ Official Notice Dispatched: Awaiting Candidate Supplemental Proof' :
+                     'Pending Secretariat Credential Audit & Examination'}
                   </strong>
                 </div>
                 <span style={{ fontSize: '11px', fontFamily: 'monospace', color: '#688075' }}>
@@ -3137,19 +3149,217 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                 </div>
 
                 {/* CURRENT VERIFICATION STATUS */}
-                <div style={{ padding: '12px 14px', borderRadius: '8px', background: isVerified ? '#ecfdf5' : '#fffbeb', border: isVerified ? '1px solid #6ee7b7' : '1px solid #fde68a', marginBottom: '20px' }}>
-                  <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 800, color: isVerified ? '#047857' : '#b45309', display: 'block', marginBottom: '2px' }}>
-                    Application Registry Status:
-                  </span>
-                  <div style={{ fontSize: '14px', fontWeight: 800, color: isVerified ? '#065f46' : '#92400e' }}>
-                    {isVerified ? '✓ Officially Verified & Certified' : '⏳ Pending Administrative Verification'}
+                {(() => {
+                  const isAwaitingProof = record.status === 'Awaiting response' || record.status === 'Needs Information';
+                  return (
+                    <div style={{
+                      padding: '14px 16px',
+                      borderRadius: '10px',
+                      background: isVerified ? '#ecfdf5' : isAwaitingProof ? '#fffbeb' : '#f8faf9',
+                      border: isVerified ? '1.5px solid #6ee7b7' : isAwaitingProof ? '1.5px solid #fde68a' : '1px solid #dce5e0',
+                      marginBottom: '16px'
+                    }}>
+                      <span style={{
+                        fontSize: '11px',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.06em',
+                        fontWeight: 800,
+                        color: isVerified ? '#047857' : isAwaitingProof ? '#b45309' : '#526960',
+                        display: 'block',
+                        marginBottom: '3px'
+                      }}>
+                        Application Registry Status:
+                      </span>
+                      <div style={{
+                        fontSize: '14px',
+                        fontWeight: 800,
+                        color: isVerified ? '#065f46' : isAwaitingProof ? '#92400e' : '#133e36',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}>
+                        {isVerified ? (
+                          <>
+                            <CheckCircle2 size={16} color="#059669" />
+                            <span>✓ Officially Verified &amp; Certified</span>
+                          </>
+                        ) : isAwaitingProof ? (
+                          <>
+                            <MessageSquareWarning size={16} color="#d97706" />
+                            <span>⚠️ Awaiting Supplemental Proof from Applicant</span>
+                          </>
+                        ) : (
+                          <>
+                            <Clock size={16} color="#d97706" />
+                            <span>⏳ Pending Administrative Verification</span>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Dispatched notice callout if present */}
+                      {(details.reviewNote || record.reviewNote) && (
+                        <div style={{
+                          marginTop: '8px',
+                          fontSize: '11.5px',
+                          color: '#78350f',
+                          background: 'rgba(254, 243, 199, 0.65)',
+                          padding: '8px 10px',
+                          borderRadius: '6px',
+                          border: '1px solid #fde68a',
+                          lineHeight: 1.5
+                        }}>
+                          <strong>Notice on File:</strong> {details.reviewNote || record.reviewNote}
+                        </div>
+                      )}
+
+                      {details.auditedBy && (
+                        <small style={{ color: '#688075', display: 'block', marginTop: '6px', fontSize: '11px' }}>
+                          Updated by: {details.auditedBy} on {details.auditDate}
+                        </small>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* IN-MODAL FEEDBACK ALERT WHEN NOTICE DISPATCHED */}
+                {requestProofSuccess && (
+                  <div style={{
+                    background: '#fef3c7',
+                    border: '1.5px solid #f59e0b',
+                    borderRadius: '8px',
+                    padding: '10px 14px',
+                    marginBottom: '16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '8px',
+                    boxShadow: '0 2px 8px rgba(245, 158, 11, 0.15)'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#92400e', fontWeight: 600 }}>
+                      <CheckCircle2 size={16} color="#d97706" />
+                      <span>✓ Official request dispatched! Record status updated to <strong>Awaiting Response</strong>.</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setRequestProofSuccess(false)}
+                      style={{ background: 'none', border: 'none', color: '#92400e', cursor: 'pointer', fontSize: '15px', fontWeight: 'bold' }}
+                    >
+                      ×
+                    </button>
                   </div>
-                  {details.auditedBy && (
-                    <small style={{ color: '#688075', display: 'block', marginTop: '4px' }}>
-                      Audited by: {details.auditedBy} on {details.auditDate}
-                    </small>
-                  )}
-                </div>
+                )}
+
+                {/* INTERACTIVE FORM FOR SPECIFYING ADDITIONAL PROOF */}
+                {requestProofOpen && (
+                  <div style={{
+                    background: '#fffdf5',
+                    border: '1.5px solid #f59e0b',
+                    borderRadius: '10px',
+                    padding: '14px 16px',
+                    marginBottom: '16px',
+                    boxShadow: '0 4px 14px rgba(245, 158, 11, 0.12)'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <strong style={{ fontSize: '13px', color: '#92400e', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <MessageSquareWarning size={16} /> Specify Required Documentation
+                      </strong>
+                      <button
+                        type="button"
+                        onClick={() => setRequestProofOpen(false)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#92400e', fontSize: '16px', fontWeight: 'bold' }}
+                      >
+                        ×
+                      </button>
+                    </div>
+
+                    <p style={{ fontSize: '11.5px', color: '#78350f', margin: '0 0 8px', lineHeight: 1.4 }}>
+                      Select a standard audit requirement or type specific notes for the candidate:
+                    </p>
+
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '10px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setRequestProofNote('Please provide a clear, uncropped high-resolution color scan of your Voter Registration Card or National ID.')}
+                        style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '4px', border: '1px solid #d97706', background: '#fff', color: '#92400e', cursor: 'pointer', fontWeight: 600 }}
+                      >
+                        🆔 Color Voter ID
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRequestProofNote('Please provide an official stamped academic transcript or diploma from the accredited institution.')}
+                        style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '4px', border: '1px solid #d97706', background: '#fff', color: '#92400e', cursor: 'pointer', fontWeight: 600 }}
+                      >
+                        🎓 Stamped Transcript
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRequestProofNote('Please submit a signed customary indigeneity attestation from the Putu Paramount / Clan Chief.')}
+                        style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '4px', border: '1px solid #d97706', background: '#fff', color: '#92400e', cursor: 'pointer', fontWeight: 600 }}
+                      >
+                        🏛️ Chiefs Indigeneity Letter
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRequestProofNote('Please attach certified machine operator logbook endorsed by your concession site supervisor.')}
+                        style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '4px', border: '1px solid #d97706', background: '#fff', color: '#92400e', cursor: 'pointer', fontWeight: 600 }}
+                      >
+                        🚜 Equipment Logbook
+                      </button>
+                    </div>
+
+                    <Textarea
+                      rows={3}
+                      value={requestProofNote}
+                      onChange={(e) => setRequestProofNote(e.target.value)}
+                      placeholder="Enter specific instructions or document requirements for the applicant..."
+                      style={{ width: '100%', fontSize: '12px', marginBottom: '10px', borderColor: '#fde68a', background: '#fff' }}
+                    />
+
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setRequestProofOpen(false)}
+                        style={{ fontSize: '12px', height: '32px' }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="primary"
+                        onClick={() => {
+                          const finalNote = requestProofNote.trim() || 'Supplemental proof required by Secretariat Facilitator.';
+                          handleRequestMoreProof(record, finalNote);
+                          setInspectDocItem(prev => prev ? {
+                            ...prev,
+                            record: { ...prev.record, status: 'Awaiting response' },
+                            details: {
+                              ...prev.details,
+                              reviewNote: finalNote,
+                              auditDate: new Date().toISOString().split('T')[0],
+                              auditedBy: `${currentRole.name} (${currentRole.badge})`
+                            }
+                          } : null);
+                          setRequestProofOpen(false);
+                          setRequestProofSuccess(true);
+                        }}
+                        style={{
+                          background: '#b45309',
+                          borderColor: '#92400e',
+                          color: '#fff',
+                          fontWeight: 700,
+                          fontSize: '12px',
+                          height: '32px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        <Send size={13} /> Dispatch Official Request
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* ADMINISTRATIVE ACTION BUTTONS */}
@@ -3189,11 +3399,10 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                     <Button
                       variant="outline"
                       onClick={() => {
-                        handleRequestMoreProof(record);
-                        setInspectDocItem(prev => prev ? {
-                          ...prev,
-                          record: { ...prev.record, status: 'Needs Information' }
-                        } : null);
+                        if (!requestProofNote && !details.reviewNote) {
+                          setRequestProofNote('Please provide a clear, uncropped high-resolution color scan of your Voter Registration Card or National ID.');
+                        }
+                        setRequestProofOpen(true);
                       }}
                       style={{
                         height: '38px',
@@ -3204,10 +3413,25 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                         fontSize: '12.5px',
                         color: '#b45309',
                         borderColor: '#fde68a',
-                        background: '#fffdfa'
+                        background: '#fffdfa',
+                        fontWeight: 700
                       }}
                     >
-                      <MessageSquareWarning size={15} /> Request Additional Proof
+                      <MessageSquareWarning size={15} /> {(record.status === 'Awaiting response' || record.status === 'Needs Information') ? 'Update / Resend Proof Request' : 'Request Additional Proof'}
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      onClick={() => setInspectDocItem(null)}
+                      style={{
+                        height: '34px',
+                        fontSize: '12px',
+                        color: '#4b5563',
+                        borderColor: '#dce5e0',
+                        background: '#f8faf9'
+                      }}
+                    >
+                      Close Inspection Desk
                     </Button>
                   </>
                 ) : (
@@ -6704,7 +6928,12 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    onClick={() => handleRequestMoreProof(item)}
+                                    onClick={() => {
+                                        openDocumentInspection(item);
+                                        setTimeout(() => {
+                                          setRequestProofOpen(true);
+                                        }, 120);
+                                      }}
                                     style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#b45309', borderColor: '#fde68a' }}
                                   >
                                     <MessageSquareWarning size={15} /> Request Additional Proof
