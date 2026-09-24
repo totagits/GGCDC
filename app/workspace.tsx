@@ -277,7 +277,7 @@ const HERO_SLIDES = [
 export default function Workspace({ user: initialUser }: { user?: string }) {
   // Top-Level View Mode: 'public' (full-width public portal, NO internal sidebar) vs 'workspace' (internal operations, RBAC sidebar)
   const [viewMode, setViewMode] = useState<'public' | 'workspace'>('public');
-  const [publicTab, setPublicTab] = useState<'home' | 'architecture' | 'roadmap' | 'pillars' | 'putu-group' | 'grievance' | 'workforce'>('home');
+  const [publicTab, setPublicTab] = useState<'home' | 'architecture' | 'roadmap' | 'pillars' | 'putu-group' | 'grievance' | 'workforce' | 'businesses'>('home');
   const [publicMobileNav, setPublicMobileNav] = useState(false);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'putu-group' | 'architecture' | 'roadmap' | 'pillars' | 'tools'>('dashboard');
   const [activeModuleId, setActiveModuleId] = useState<string>('agreements');
@@ -348,6 +348,39 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
   const [proofDragActive, setProofDragActive] = useState(false);
   const fileInputRefA = useRef<HTMLInputElement>(null);
   const fileInputRefB = useRef<HTMLInputElement>(null);
+
+  // Tool: 51% Grand Gedean Business Registry & Local Contractor Desk
+  const [businessView, setBusinessView] = useState<'register' | 'directory' | 'tenders'>('register');
+  const [businessSectorFilter, setBusinessSectorFilter] = useState('All');
+  const [businessOwnershipFilter, setBusinessOwnershipFilter] = useState('All');
+  const [businessModalVendor, setBusinessModalVendor] = useState<any | null>(null);
+  const [businessForm, setBusinessForm] = useState({
+    businessName: '',
+    county: 'Grand Gedeh',
+    headquarters: 'Zwedru Commercial District',
+    lbrNumber: '',
+    tinNumber: '',
+    ownershipShare: '100% Grand Gedean Owned',
+    ownershipPercentage: '100',
+    principals: '',
+    sector: 'Civil Construction (Offices, Canteens, Schools, Clinics)',
+    capacity: '',
+    employees: '15 staff (85% Grand Gedeans)',
+    pastContracts: '',
+    taxStatus: 'Current & Cleared (Bid Ready)',
+    contactPerson: '',
+    phone: '',
+    email: '',
+    endorsement: 'Grand Gedeh Chamber of Commerce',
+    proofFileName: '',
+    proofFileSize: '',
+    proofFileData: '',
+    consent: true
+  });
+  const [businessSuccessId, setBusinessSuccessId] = useState<string | null>(null);
+  const [isUploadingBusinessProof, setIsUploadingBusinessProof] = useState(false);
+  const [businessProofDragActive, setBusinessProofDragActive] = useState(false);
+  const businessFileInputRef = useRef<HTMLInputElement>(null);
 
   // Tool: Grievance Portal
   const [grievanceForm, setGrievanceForm] = useState({
@@ -909,6 +942,395 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
         return matchesTrade && matchesExp && matchesTrack;
       });
   }, [records, matcherTrade, matcherMinExp, matcherTrackFilter]);
+
+  // 51% Grand Gedean Registered Businesses for Directory & Tender Matching
+  const registeredBusinesses = useMemo(() => {
+    return records
+      .filter(r => r.module === 'suppliers')
+      .map(r => {
+        let details: any = {};
+        try {
+          details = JSON.parse(r.details || '{}');
+        } catch {
+          details = {};
+        }
+        return {
+          id: r.id,
+          name: r.title,
+          community: r.community || details.headquarters || 'Grand Gedeh',
+          county: r.county || 'Grand Gedeh',
+          ownership: details.ownership || '100% Grand Gedean Owned',
+          ownershipPercentage: details.ownershipPercentage || (details.ownership?.includes('100%') ? '100%' : details.ownership?.includes('75%') ? '75%' : '51%'),
+          sector: details.sector || 'Civil Construction & Camp Services',
+          principals: details.principals || 'Grand Gedean Founders & Shareholders',
+          registration: details.registration || 'Liberia Business Registry Verified',
+          taxStatus: details.taxStatus || 'Current & Cleared (Bid Ready)',
+          headquarters: details.headquarters || r.community || 'Zwedru Commercial District',
+          capacity: details.capacity || 'Operational fleet and equipment ready for site mobilization',
+          employees: details.employees || 'Local Grand Gedean technical team',
+          pastContracts: details.pastContracts || 'Documented contractor track record on file',
+          contact: details.contact || '',
+          endorsement: details.endorsement || 'County Chamber of Commerce',
+          prequalificationStatus: details.prequalificationStatus || 'Prequalified 51%+ Local Contractor',
+          proofDocument: details.proofDocument || 'LBR Articles & Ownership Ledger Attached',
+          trackingCode: details.trackingCode || `GGCDC-BIZ-${r.id.replace('rec-sup-', '')}`,
+          summary: r.summary
+        };
+      })
+      .filter(b => {
+        const matchesSector = businessSectorFilter === 'All' || b.sector.toLowerCase().includes(businessSectorFilter.toLowerCase());
+        const matchesOwnership = businessOwnershipFilter === 'All' || b.ownership.toLowerCase().includes(businessOwnershipFilter.toLowerCase());
+        return matchesSector && matchesOwnership;
+      });
+  }, [records, businessSectorFilter, businessOwnershipFilter]);
+
+  // Concession Tenders & Local Content Quotas
+  const concessionTenders = useMemo(() => {
+    return records
+      .filter(r => r.module === 'procurement')
+      .map(r => {
+        let details: any = {};
+        try {
+          details = JSON.parse(r.details || '{}');
+        } catch {
+          details = {};
+        }
+        return {
+          id: r.id,
+          title: r.title,
+          community: r.community,
+          county: r.county || 'Grand Gedeh',
+          buyer: details.buyer || 'Concession Procurement Directorate',
+          category: details.category || 'Civil Construction & Camp Works',
+          deadline: details.deadline || r.due_date || '2026-10-15',
+          estimatedValue: details.estimatedValue || 'To Be Announced',
+          awardee: details.awardee || 'Tender Open for Bidding',
+          localContent: details.localContent || 'Statutory 51%+ Grand Gedean preference applies',
+          summary: r.summary,
+          status: r.status
+        };
+      });
+  }, [records]);
+
+  // Robust Business Proof Upload Processors
+  const processUploadedBusinessFile = (file: File | null) => {
+    if (!file) return;
+    setIsUploadingBusinessProof(true);
+
+    const sizeStr = file.size > 1024 * 1024 
+      ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` 
+      : `${Math.round(file.size / 1024)} KB`;
+
+    setTimeout(() => {
+      setBusinessForm(prev => ({
+        ...prev,
+        proofFileName: file.name,
+        proofFileSize: sizeStr,
+        proofFileData: '' // Keep empty to safeguard browser storage quota
+      }));
+      setIsUploadingBusinessProof(false);
+      setFeedback(`Ownership document attached: ${file.name} (${sizeStr})`);
+    }, 250);
+  };
+
+  const handleBusinessProofFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      processUploadedBusinessFile(file);
+    }
+  };
+
+  const handleBusinessProofDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setBusinessProofDragActive(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      processUploadedBusinessFile(file);
+    }
+  };
+
+  const handleUseSampleBusinessProof = () => {
+    setIsUploadingBusinessProof(true);
+    setTimeout(() => {
+      setBusinessForm(prev => ({
+        ...prev,
+        proofFileName: 'lbr_articles_of_incorporation_51pct_ownership_ledger_verified.pdf',
+        proofFileSize: '2.4 MB',
+        proofFileData: ''
+      }));
+      setFeedback('Sample document attached: LBR Articles of Incorporation & 51% Beneficial Ownership Ledger');
+      setIsUploadingBusinessProof(false);
+    }, 200);
+  };
+
+  const handleRemoveBusinessProof = () => {
+    setBusinessForm(prev => ({
+      ...prev,
+      proofFileName: '',
+      proofFileSize: '',
+      proofFileData: ''
+    }));
+    if (businessFileInputRef.current) businessFileInputRef.current.value = '';
+  };
+
+  // Submit Business Profile (Public Ingestion into 51% Contractor Directory)
+  const handleSubmitBusiness = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!businessForm.businessName.trim()) {
+      setError('Please provide the full legal name of the enterprise.');
+      return;
+    }
+    if (!businessForm.lbrNumber.trim()) {
+      setError('Please provide the Liberia Business Registry (LBR) registration number.');
+      return;
+    }
+    if (!businessForm.principals.trim()) {
+      setError('Please provide the Grand Gedean shareholders, founders, and clans.');
+      return;
+    }
+    if (!businessForm.phone.trim()) {
+      setError('Please provide an official business phone number or WhatsApp.');
+      return;
+    }
+    if (!businessForm.consent) {
+      setError('Mandatory Safeguard: Legal declaration of bona fide 51% Grand Gedean beneficial ownership is required.');
+      return;
+    }
+
+    const trackingCode = `GGCDC-BIZ-${Math.floor(1000 + Math.random() * 9000)}`;
+    const recordTitle = businessForm.businessName.trim();
+    const recordSummary = `${businessForm.ownershipShare} enterprise in ${businessForm.sector}. LBR #${businessForm.lbrNumber}. Capacity: ${businessForm.capacity.slice(0, 150) || 'Operational fleet and yard ready for mobilization'}.`;
+
+    const detailsObj = {
+      ownership: businessForm.ownershipShare,
+      ownershipPercentage: businessForm.ownershipPercentage,
+      sector: businessForm.sector,
+      principals: businessForm.principals,
+      registration: `LBR #${businessForm.lbrNumber}${businessForm.tinNumber ? ' / TIN #' + businessForm.tinNumber : ''}`,
+      taxStatus: businessForm.taxStatus,
+      headquarters: businessForm.headquarters,
+      capacity: businessForm.capacity || 'Commercial equipment, machinery and technicians ready for mobilization',
+      employees: businessForm.employees,
+      pastContracts: businessForm.pastContracts || 'Documented track record on file with GGCDC Chamber of Commerce',
+      contact: `${businessForm.contactPerson ? businessForm.contactPerson + ' - ' : ''}${businessForm.phone}${businessForm.email ? ' / ' + businessForm.email : ''}`,
+      endorsement: businessForm.endorsement,
+      prequalificationStatus: 'Prequalified 51%+ Local Contractor',
+      proofDocument: businessForm.proofFileName ? `${businessForm.proofFileName} (${businessForm.proofFileSize})` : 'LBR Articles & Beneficial Ownership Certified on File',
+      proofFileData: businessForm.proofFileData || undefined,
+      trackingCode,
+      consent: 'Yes',
+      consentDate: new Date().toISOString().split('T')[0]
+    };
+
+    StorageEngine.addRecord({
+      module: 'suppliers',
+      title: recordTitle,
+      status: 'Verified',
+      county: businessForm.county,
+      community: businessForm.headquarters,
+      owner: 'Local Business Chamber',
+      due_date: `${new Date().getFullYear()}-12-31`,
+      summary: recordSummary,
+      details: JSON.stringify(detailsObj),
+      created_by: 'Public 51% Enterprise Registration Desk'
+    });
+
+    setBusinessSuccessId(trackingCode);
+    setFeedback(`Enterprise registered successfully! Reference ID: ${trackingCode}. Enrolled in 51% Prequalified Contractor Directory.`);
+    setError('');
+    loadData();
+  };
+
+  // Official GGCDC 51% Beneficial Ownership Certificate & Procurement Endorsement Modal
+  const renderBusinessEndorsementModal = () => {
+    if (!businessModalVendor) return null;
+    const v = businessModalVendor;
+    const todayStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    const refNum = v.trackingCode || `GGCDC-BIZ-CERT-${v.id.replace('rec-sup-', '')}`;
+
+    return (
+      <div 
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(10, 25, 20, 0.75)',
+          backdropFilter: 'blur(4px)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px',
+          overflowY: 'auto'
+        }}
+        onClick={() => setBusinessModalVendor(null)}
+      >
+        <div 
+          style={{
+            background: '#fff',
+            borderRadius: '12px',
+            maxWidth: '860px',
+            width: '100%',
+            maxHeight: '92vh',
+            overflowY: 'auto',
+            padding: '36px 44px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
+            border: '2px solid #133e36',
+            color: '#1a2e26',
+            fontFamily: 'serif',
+            position: 'relative'
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Action buttons header (hidden when printing) */}
+          <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid #dce5e0', paddingBottom: '14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#133e36', fontWeight: 600, fontSize: '13px', fontFamily: 'sans-serif' }}>
+              <ShieldCheck size={18} color="#2e7d32" />
+              <span>Official GGCDC Statutory Local Procurement Endorsement Instrument</span>
+            </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.print()}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}
+              >
+                <Printer size={15} /> Print / Export PDF
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setBusinessModalVendor(null)}
+                style={{ padding: '4px 8px' }}
+              >
+                <X size={18} />
+              </Button>
+            </div>
+          </div>
+
+          {/* OFFICIAL LETTERHEAD */}
+          <div style={{ textAlign: 'center', borderBottom: '3px double #133e36', paddingBottom: '18px', marginBottom: '22px' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '56px', height: '56px', borderRadius: '50%', background: '#133e36', color: '#f3d999', fontSize: '26px', fontWeight: 'bold', fontFamily: 'sans-serif', margin: '0 auto 10px' }}>
+              G
+            </div>
+            <div style={{ fontSize: '12px', letterSpacing: '2px', textTransform: 'uppercase', color: '#687b73', fontWeight: 700, fontFamily: 'sans-serif' }}>
+              Republic of Liberia • Grand Gedeh County
+            </div>
+            <h1 style={{ fontSize: '24px', fontWeight: 800, color: '#133e36', margin: '4px 0 2px', fontFamily: 'Georgia, serif' }}>
+              Grand Gedeh Citizens Development Council (GGCDC)
+            </h1>
+            <div style={{ fontSize: '13px', color: '#445b52', fontFamily: 'sans-serif', fontWeight: 600 }}>
+              Joint Directorate for Local Content, Commercial Enterprise &amp; Concession Procurement
+            </div>
+            <div style={{ fontSize: '11px', color: '#7a8e85', marginTop: '4px', fontFamily: 'sans-serif' }}>
+              In Statutory Alliance with Grand Gedeh Chamber of Commerce, Council of Chiefs &amp; Grand Gedeh Bar Association (GGBA)
+            </div>
+          </div>
+
+          {/* META INFO BAR */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontFamily: 'sans-serif', color: '#556b62', marginBottom: '20px', borderBottom: '1px solid #edf2ef', paddingBottom: '10px' }}>
+            <div><strong>Attestation Ref:</strong> <span style={{ fontFamily: 'monospace', color: '#133e36', fontWeight: 700 }}>{refNum}</span></div>
+            <div><strong>Audit Date:</strong> {todayStr}</div>
+            <div><strong>Beneficial Classification:</strong> <span style={{ color: '#2e7d32', fontWeight: 700 }}>{v.ownership}</span></div>
+          </div>
+
+          {/* ADDRESSEE */}
+          <div style={{ fontSize: '13px', lineHeight: '1.6', marginBottom: '18px', fontFamily: 'sans-serif', color: '#2a3b34' }}>
+            <strong>TO:</strong> The Managing Director &amp; Vice President for Global Procurement<br />
+            <strong>CONCESSIONAIRE:</strong> Putu Iron Ore Mining Concessionaire, EPC Prime Contractors &amp; Subcontractors<br />
+            <strong>COPY:</strong> Ministry of Mines &amp; Energy, National Investment Commission (NIC) &amp; Inter-Ministerial Concessions Committee (IMCC)
+          </div>
+
+          {/* DOCUMENT TITLE */}
+          <div style={{ background: '#eef7f2', border: '1px solid #a3cfbb', borderRadius: '6px', padding: '12px 18px', textAlign: 'center', marginBottom: '22px' }}>
+            <div style={{ fontSize: '11px', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '1px', color: '#145a32', fontFamily: 'sans-serif' }}>
+              Statutory Local Content Quota Enforcement • Mineral Development Agreement Section 13
+            </div>
+            <h2 style={{ fontSize: '17px', fontWeight: 700, margin: '4px 0', color: '#133e36', fontFamily: 'Georgia, serif' }}>
+              OFFICIAL CERTIFICATE OF ≥51% GRAND GEDEH BENEFICIAL OWNERSHIP &amp; CONTRACTOR PREQUALIFICATION
+            </h2>
+            <div style={{ fontSize: '12px', color: '#556b62', fontFamily: 'sans-serif' }}>
+              Mandatory Priority Right for Civil Works, Camp Infrastructure, Catering, Haulage &amp; Local Supplies
+            </div>
+          </div>
+
+          {/* ATTESTATION BODY */}
+          <div style={{ fontSize: '14px', lineHeight: '1.7', color: '#24362f', marginBottom: '22px' }}>
+            <p style={{ margin: '0 0 12px' }}>
+              The <strong>Grand Gedeh Citizens Development Council (GGCDC)</strong>, exercising its legal and civic mandate to monitor local content compliance and safeguard host-county economic entitlements, hereby formally certifies that:
+            </p>
+            <div style={{ textAlign: 'center', margin: '14px 0', padding: '12px', background: '#f5faf7', border: '1px solid #cce5d8', borderRadius: '6px' }}>
+              <span style={{ fontSize: '18px', fontWeight: 800, color: '#113e35', fontFamily: 'Georgia, serif' }}>
+                {v.name}
+              </span>
+              <div style={{ fontSize: '13px', color: '#386355', marginTop: '4px', fontFamily: 'sans-serif' }}>
+                <strong>Ownership Status:</strong> {v.ownership} • <strong>Operational Base:</strong> {v.headquarters}, Grand Gedeh
+              </div>
+            </div>
+            <p style={{ margin: '0 0 12px' }}>
+              Following a rigorous forensic audit of corporate registry filings, ownership ledgers, and physical yard inspection, the GGCDC Technical Secretariat verifies that this commercial enterprise is genuinely owned at least <strong>51% (or more)</strong> by bona fide indigenes of Grand Gedeh County (Principals: <em>{v.principals}</em>) and does not operate as a proxy or pass-through front for foreign or non-county entities.
+            </p>
+            <p style={{ margin: '0 0 12px' }}>
+              <strong>Certified Operational Scope:</strong> The enterprise possesses certified operational and technical capacity in <strong>{v.sector}</strong>, maintaining a local workforce of <strong>{v.employees}</strong> and documented physical plant/machinery ready for immediate deployment.
+            </p>
+            <div style={{ background: '#fff9e6', border: '1px solid #f2da83', padding: '14px 18px', borderRadius: '6px', margin: '16px 0', fontSize: '13px', lineHeight: '1.6' }}>
+              <strong style={{ color: '#7a5a07', display: 'block', marginBottom: '4px', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.05em' }}>
+                Statutory Notice of Section 13 Concession Compliance:
+              </strong>
+              Under Section 13 (Local Procurement) of the Putu Mineral Development Agreement and Section 44 of the PPCA, the Concessionaire and its engineering prime contractors are <strong>strictly legally prohibited</strong> from awarding civil construction contracts (camp offices, staff quarters, central canteens, schools, and clinics), haulage, fresh food supply, or fabrication works to foreign or Monrovia-based firms without first soliciting and providing first-right preference to verified Grand Gedean contractors. Having officially audited and prequalified <strong>{v.name}</strong>, any claim that &ldquo;no qualified local enterprise exists&rdquo; is legally null and void.
+            </div>
+          </div>
+
+          {/* VERIFIED ENTERPRISE AUDIT RECORD */}
+          <div style={{ border: '1px solid #dce5e0', borderRadius: '8px', padding: '16px', background: '#fafcfb', marginBottom: '24px', fontSize: '13px', fontFamily: 'sans-serif' }}>
+            <div style={{ fontWeight: 700, color: '#133e36', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: '11px' }}>
+              Forensic Enterprise Audit &amp; Registry Verification
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px 20px' }}>
+              <div><span style={{ color: '#687b73' }}>Enterprise Legal Name:</span> <strong>{v.name}</strong></div>
+              <div><span style={{ color: '#687b73' }}>Grand Gedean Beneficial Share:</span> <strong style={{ color: '#1b5e20' }}>{v.ownership}</strong></div>
+              <div><span style={{ color: '#687b73' }}>Shareholders &amp; Clan Origins:</span> <strong>{v.principals}</strong></div>
+              <div><span style={{ color: '#687b73' }}>LBR &amp; Tax Status:</span> <strong>{v.registration} • {v.taxStatus}</strong></div>
+              <div><span style={{ color: '#687b73' }}>Commercial Sector:</span> <strong>{v.sector}</strong></div>
+              <div><span style={{ color: '#687b73' }}>County Yard / Office:</span> <strong>{v.headquarters}</strong></div>
+              <div><span style={{ color: '#687b73' }}>Fleet &amp; Machinery Capacity:</span> <strong>{v.capacity}</strong></div>
+              <div><span style={{ color: '#687b73' }}>Local Staff Ratio:</span> <strong>{v.employees}</strong></div>
+              <div><span style={{ color: '#687b73' }}>Past Project References:</span> <strong>{v.pastContracts}</strong></div>
+              <div><span style={{ color: '#687b73' }}>Official Business Contact:</span> <strong>{v.contact}</strong></div>
+              <div><span style={{ color: '#687b73' }}>Audit Evidence Document:</span> <strong style={{ color: '#133e36' }}>{v.proofDocument}</strong></div>
+              <div><span style={{ color: '#687b73' }}>Prequalification Standing:</span> <strong style={{ color: '#2e7d32' }}>{v.prequalificationStatus}</strong></div>
+            </div>
+          </div>
+
+          {/* SIGNATURE BLOCK */}
+          <div style={{ marginTop: '30px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', textAlign: 'center', fontSize: '12px', fontFamily: 'sans-serif', borderTop: '1px solid #dce5e0', paddingTop: '20px' }}>
+            <div>
+              <div style={{ height: '36px', borderBottom: '1px dashed #7a8e85', margin: '0 20px 8px' }}></div>
+              <strong>Hon. Marcus K. Gaye</strong><br />
+              <span style={{ color: '#687b73', fontSize: '11px' }}>Chairperson, Grand Gedeh Chamber of Commerce<br />Local Enterprise Bureau</span>
+            </div>
+            <div>
+              <div style={{ height: '36px', borderBottom: '1px dashed #7a8e85', margin: '0 20px 8px' }}></div>
+              <strong>Paramount Chief Gbarbo Jarwodee</strong><br />
+              <span style={{ color: '#687b73', fontSize: '11px' }}>President, Grand Gedeh Council of Traditional Chiefs<br />Customary Custodian</span>
+            </div>
+            <div>
+              <div style={{ height: '36px', borderBottom: '1px dashed #7a8e85', margin: '0 20px 8px' }}></div>
+              <strong>Cllr. J. Alexander Boley</strong><br />
+              <span style={{ color: '#687b73', fontSize: '11px' }}>Lead Legal Counsel, Grand Gedeh Bar Association (GGBA)<br />Concession Compliance Panel</span>
+            </div>
+          </div>
+
+          {/* FOOTER WATERMARK */}
+          <div style={{ textAlign: 'center', marginTop: '24px', fontSize: '10px', color: '#94a39b', fontFamily: 'sans-serif' }}>
+            Grand Gedeh Citizens Development Council • Official Procurement Certificate • Section 13 Quota Enforcement Hotline: +231-776-GGCDC-PROCURE • procurement@ggcdc.org.lr
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // Official GGCDC Endorsement & Recommendation Letter Modal
   const renderRecommendationModal = () => {
@@ -2504,6 +2926,717 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
     </div>
   );
 
+  const renderPublicBusinessContent = () => (
+    <div style={{ background: '#fff', border: '1px solid #dce5e0', borderRadius: '12px', padding: '28px' }}>
+      {/* HEADER */}
+      <div style={{ marginBottom: '24px', borderBottom: '1px solid #edf2ef', paddingBottom: '18px' }}>
+        <div className="eyebrow">LOCAL PROCUREMENT &amp; 51% ENTERPRISE PREQUALIFICATION</div>
+        <h2 style={{ font: '700 24px Georgia', margin: '4px 0 6px', color: '#133e36' }}>
+          Grand Gedeh 51% Business &amp; Local Contractor Registry
+        </h2>
+        <p style={{ fontSize: '14px', color: '#556b62', margin: 0, maxWidth: '880px', lineHeight: '1.6' }}>
+          Enforcing Section 13 (Local Procurement Quotas) of the Putu Mineral Development Agreement (MDA).
+          Mining concessionaires and prime contractors are building camp offices, staff quarters, canteens, community schools, and clinics, and require daily catering, aggregate haulage, and site fabrication. GGCDC audits and prequalifies businesses with ≥51% Grand Gedean beneficial ownership to legally defeat &ldquo;no qualified local firm exists&rdquo; excuses and secure contract awards for our people.
+        </p>
+      </div>
+
+      {/* TOP NAVIGATION / VIEW TOGGLE */}
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '24px', flexWrap: 'wrap' }}>
+        <Button
+          variant={businessView === 'register' ? 'default' : 'outline'}
+          className={businessView === 'register' ? 'primary' : ''}
+          onClick={() => { setBusinessView('register'); setBusinessSuccessId(null); }}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}
+        >
+          <Building2 size={16} /> Register 51% Local Enterprise / Apply for Prequalification
+        </Button>
+        <Button
+          variant={businessView === 'directory' ? 'default' : 'outline'}
+          className={businessView === 'directory' ? 'primary' : ''}
+          onClick={() => setBusinessView('directory')}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}
+        >
+          <BriefcaseBusiness size={16} /> Certified 51%+ Contractor Directory ({registeredBusinesses.length})
+        </Button>
+        <Button
+          variant={businessView === 'tenders' ? 'default' : 'outline'}
+          className={businessView === 'tenders' ? 'primary' : ''}
+          onClick={() => setBusinessView('tenders')}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}
+        >
+          <ClipboardCheck size={16} /> Concession Tenders &amp; Local Quotas ({concessionTenders.length})
+        </Button>
+      </div>
+
+      {/* VIEW 1: REGISTRATION & PREQUALIFICATION APPLICATION */}
+      {businessView === 'register' && (
+        <div>
+          {/* SUCCESS BANNER IF JUST SUBMITTED */}
+          {businessSuccessId ? (
+            <div style={{ background: '#eef7f2', border: '1px solid #a3cfbb', borderRadius: '10px', padding: '24px', marginBottom: '24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                <CheckCircle2 size={26} color="#1e7e34" />
+                <div>
+                  <h3 style={{ margin: 0, color: '#145a32', font: '700 18px Georgia' }}>
+                    51% Grand Gedean Enterprise Registered Successfully!
+                  </h3>
+                  <div style={{ fontSize: '13px', color: '#276e43' }}>
+                    Audited Reference Code: <strong style={{ fontFamily: 'monospace', fontSize: '14px', background: '#d4edda', padding: '2px 6px', borderRadius: '4px' }}>{businessSuccessId}</strong>
+                  </div>
+                </div>
+              </div>
+              <p style={{ fontSize: '14px', color: '#2b5138', margin: '0 0 16px', lineHeight: '1.5' }}>
+                Your enterprise has been enrolled in the GGCDC Certified 51%+ Local Contractor Repository. An official Legal Attestation Instrument has been generated for direct submission to the Concessionaire Procurement Directorate and prime EPC contractors.
+              </p>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                <Button
+                  className="primary"
+                  onClick={() => {
+                    const match = registeredBusinesses.find(b => b.trackingCode === businessSuccessId) || registeredBusinesses[0];
+                    setBusinessModalVendor(match);
+                  }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Printer size={15} /> View Official 51% Endorsement Certificate
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setBusinessSuccessId(null);
+                    setBusinessForm(prev => ({
+                      ...prev,
+                      businessName: '',
+                      lbrNumber: '',
+                      tinNumber: '',
+                      principals: '',
+                      capacity: '',
+                      pastContracts: '',
+                      phone: '',
+                      email: '',
+                      proofFileName: '',
+                      proofFileSize: '',
+                      proofFileData: ''
+                    }));
+                  }}
+                >
+                  Register Another Enterprise
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setBusinessView('directory')}
+                >
+                  Browse Contractor Directory
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div>
+              {/* INFORMATION BANNER */}
+              <div style={{ background: '#f5faf7', border: '1px solid #c9ded3', borderRadius: '10px', padding: '20px', marginBottom: '24px', display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
+                <div style={{ width: '42px', height: '42px', borderRadius: '8px', background: '#133e36', color: '#f3d999', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Award size={22} />
+                </div>
+                <div>
+                  <h4 style={{ margin: '0 0 4px', font: '700 16px Georgia', color: '#133e36' }}>
+                    Section 13 Beneficial Ownership Threshold: 51% Minimum Grand Gedean Equity
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '13px', color: '#445b52', lineHeight: '1.5' }}>
+                    Under the Putu Mineral Development Agreement and Liberian Local Content Guidelines, to qualify for protected county procurement quotas (civil building of offices, canteens, schools, clinics, haulage, catering, security), a business must demonstrate that at least 51% of its voting equity and beneficial control is held by Grand Gedean indigenes.
+                  </p>
+                </div>
+              </div>
+
+              {/* REGISTRATION FORM */}
+              <form onSubmit={handleSubmitBusiness} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {/* ROW 1: LEGAL BUSINESS NAME & COMMERCIAL SECTOR */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+                  <div>
+                    <label style={{ fontSize: '13px', fontWeight: 600, color: '#1a2e26', display: 'block', marginBottom: '6px' }}>
+                      Enterprise Legal Registered Name *
+                    </label>
+                    <Input
+                      value={businessForm.businessName}
+                      onChange={(e) => setBusinessForm({ ...businessForm, businessName: e.target.value })}
+                      placeholder="e.g. Putu Mountain Civil Builders & Infrastructure Ltd"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '13px', fontWeight: 600, color: '#1a2e26', display: 'block', marginBottom: '6px' }}>
+                      Primary Commercial Sector / Service Package *
+                    </label>
+                    <select
+                      value={businessForm.sector}
+                      onChange={(e) => setBusinessForm({ ...businessForm, sector: e.target.value })}
+                      style={{ width: '100%', height: '38px', borderRadius: '6px', border: '1px solid #d5ded9', padding: '0 10px', fontSize: '13px' }}
+                      required
+                    >
+                      <option value="Civil Construction (Offices, Canteens, Schools, Clinics)">Civil Construction (Offices, Canteens, Schools, Clinics)</option>
+                      <option value="Catering, Canteen & Food Service">Catering, Canteen &amp; Food Service</option>
+                      <option value="Fresh Agricultural Produce & Food Supplies">Fresh Agricultural Produce &amp; Food Supplies</option>
+                      <option value="Haulage, Earthmoving & Aggregate Transport">Haulage, Earthmoving &amp; Aggregate Transport</option>
+                      <option value="Metal Fabrication, Welding & Maintenance">Metal Fabrication, Welding &amp; Maintenance</option>
+                      <option value="Industrial Solar, Electrical & HVAC">Industrial Solar, Electrical &amp; HVAC</option>
+                      <option value="Camp Janitorial, Laundry & Waste Services">Camp Janitorial, Laundry &amp; Waste Services</option>
+                      <option value="Physical Site Security & Asset Guarding">Physical Site Security &amp; Asset Guarding</option>
+                      <option value="Agro-Processing, Local Timber & Furniture">Agro-Processing, Local Timber &amp; Furniture</option>
+                      <option value="Surveying, Environmental & Professional Services">Surveying, Environmental &amp; Professional Services</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* ROW 2: OWNERSHIP TIER & GRAND GEDEH PRINCIPALS */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+                  <div>
+                    <label style={{ fontSize: '13px', fontWeight: 600, color: '#1a2e26', display: 'block', marginBottom: '6px' }}>
+                      Grand Gedean Beneficial Ownership Share *
+                    </label>
+                    <select
+                      value={businessForm.ownershipShare}
+                      onChange={(e) => setBusinessForm({ ...businessForm, ownershipShare: e.target.value })}
+                      style={{ width: '100%', height: '38px', borderRadius: '6px', border: '1px solid #d5ded9', padding: '0 10px', fontSize: '13px' }}
+                      required
+                    >
+                      <option value="100% Grand Gedean Owned">100% Grand Gedean Owned (Tier 1 Priority)</option>
+                      <option value="75% - 99% Grand Gedean Owned">75% - 99% Grand Gedean Owned (Tier 1 Priority)</option>
+                      <option value="51% - 74% Grand Gedean Owned (Statutory Minimum)">51% - 74% Grand Gedean Owned (Statutory Minimum)</option>
+                      <option value="Joint Venture (51% County Partner)">Joint Venture (51% County Partner)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '13px', fontWeight: 600, color: '#1a2e26', display: 'block', marginBottom: '6px' }}>
+                      Grand Gedean Shareholders / Founders &amp; Clan Origins *
+                    </label>
+                    <Input
+                      value={businessForm.principals}
+                      onChange={(e) => setBusinessForm({ ...businessForm, principals: e.target.value })}
+                      placeholder="e.g. Eng. Emmanuel T. Quiah (Putu Clan), Sarah D. Gaye (Tchien Clan)"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* ROW 3: LBR & TIN REGISTRATION, TAX STATUS, HEADQUARTERS */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                  <div>
+                    <label style={{ fontSize: '13px', fontWeight: 600, color: '#1a2e26', display: 'block', marginBottom: '6px' }}>
+                      Liberia Business Registry (LBR) # *
+                    </label>
+                    <Input
+                      value={businessForm.lbrNumber}
+                      onChange={(e) => setBusinessForm({ ...businessForm, lbrNumber: e.target.value })}
+                      placeholder="e.g. 2024-C-4421"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '13px', fontWeight: 600, color: '#1a2e26', display: 'block', marginBottom: '6px' }}>
+                      Tax Identification Number (TIN #)
+                    </label>
+                    <Input
+                      value={businessForm.tinNumber}
+                      onChange={(e) => setBusinessForm({ ...businessForm, tinNumber: e.target.value })}
+                      placeholder="e.g. 100388910"
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '13px', fontWeight: 600, color: '#1a2e26', display: 'block', marginBottom: '6px' }}>
+                      LRA Tax Clearance Status
+                    </label>
+                    <select
+                      value={businessForm.taxStatus}
+                      onChange={(e) => setBusinessForm({ ...businessForm, taxStatus: e.target.value })}
+                      style={{ width: '100%', height: '38px', borderRadius: '6px', border: '1px solid #d5ded9', padding: '0 10px', fontSize: '13px' }}
+                    >
+                      <option value="Current & Cleared (Bid Ready)">Current &amp; Cleared (Bid Ready)</option>
+                      <option value="Tax Clearance Pending LRA Audit">Tax Clearance Pending LRA Audit</option>
+                      <option value="Assistance Needed for Formalization">Assistance Needed for Formalization</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '13px', fontWeight: 600, color: '#1a2e26', display: 'block', marginBottom: '6px' }}>
+                      Grand Gedeh Operational Yard / Base *
+                    </label>
+                    <select
+                      value={businessForm.headquarters}
+                      onChange={(e) => setBusinessForm({ ...businessForm, headquarters: e.target.value })}
+                      style={{ width: '100%', height: '38px', borderRadius: '6px', border: '1px solid #d5ded9', padding: '0 10px', fontSize: '13px' }}
+                      required
+                    >
+                      <option value="Zwedru Commercial District">Zwedru Commercial District</option>
+                      <option value="Putu Mining Corridor">Putu Mining Corridor</option>
+                      <option value="Pennoken Industrial Hub">Pennoken Industrial Hub</option>
+                      <option value="Gbarzon District">Gbarzon District</option>
+                      <option value="Konobo / Cavalla Basin">Konobo / Cavalla Basin</option>
+                      <option value="Monrovia Liaison Branch">Monrovia Liaison Branch</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* ROW 4: CAPACITY, FLEET & EMPLOYEES */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+                  <div>
+                    <label style={{ fontSize: '13px', fontWeight: 600, color: '#1a2e26', display: 'block', marginBottom: '6px' }}>
+                      Operational Fleet, Machinery &amp; Technical Capacity *
+                    </label>
+                    <Textarea
+                      rows={3}
+                      value={businessForm.capacity}
+                      onChange={(e) => setBusinessForm({ ...businessForm, capacity: e.target.value })}
+                      placeholder="List equipment: e.g. 2 concrete batching mixers, 1 vibratory soil compactor, 3 10-ton flatbeds, block molding yard capacity 4,000 blocks/day..."
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '13px', fontWeight: 600, color: '#1a2e26', display: 'block', marginBottom: '6px' }}>
+                      Workforce Size &amp; Grand Gedean Employment Ratio *
+                    </label>
+                    <Input
+                      value={businessForm.employees}
+                      onChange={(e) => setBusinessForm({ ...businessForm, employees: e.target.value })}
+                      placeholder="e.g. 45 permanent staff (85% Grand Gedeans)"
+                      required
+                      style={{ marginBottom: '10px' }}
+                    />
+
+                    <label style={{ fontSize: '13px', fontWeight: 600, color: '#1a2e26', display: 'block', marginBottom: '6px' }}>
+                      County Business Chamber / Community Endorsement
+                    </label>
+                    <Input
+                      value={businessForm.endorsement}
+                      onChange={(e) => setBusinessForm({ ...businessForm, endorsement: e.target.value })}
+                      placeholder="e.g. Grand Gedeh Chamber of Commerce & Putu Paramount Chief"
+                    />
+                  </div>
+                </div>
+
+                {/* ROW 5: PAST CONTRACTS & REFERENCES */}
+                <div>
+                  <label style={{ fontSize: '13px', fontWeight: 600, color: '#1a2e26', display: 'block', marginBottom: '6px' }}>
+                    Past Completed Projects &amp; Commercial References
+                  </label>
+                  <Textarea
+                    rows={2}
+                    value={businessForm.pastContracts}
+                    onChange={(e) => setBusinessForm({ ...businessForm, pastContracts: e.target.value })}
+                    placeholder="e.g. Built 6-classroom school annex in Zwedru, constructed 2 rural clinics in Gbarzon with solar power, completed road culvert headwalls..."
+                  />
+                </div>
+
+                {/* ROW 6: CONTACT INFORMATION */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                  <div>
+                    <label style={{ fontSize: '13px', fontWeight: 600, color: '#1a2e26', display: 'block', marginBottom: '6px' }}>
+                      Contact Person &amp; Title
+                    </label>
+                    <Input
+                      value={businessForm.contactPerson}
+                      onChange={(e) => setBusinessForm({ ...businessForm, contactPerson: e.target.value })}
+                      placeholder="e.g. Eng. Emmanuel T. Quiah, Managing Director"
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '13px', fontWeight: 600, color: '#1a2e26', display: 'block', marginBottom: '6px' }}>
+                      Official Phone / WhatsApp *
+                    </label>
+                    <Input
+                      value={businessForm.phone}
+                      onChange={(e) => setBusinessForm({ ...businessForm, phone: e.target.value })}
+                      placeholder="+231-770-000-000"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '13px', fontWeight: 600, color: '#1a2e26', display: 'block', marginBottom: '6px' }}>
+                      Official Email Address
+                    </label>
+                    <Input
+                      value={businessForm.email}
+                      onChange={(e) => setBusinessForm({ ...businessForm, email: e.target.value })}
+                      placeholder="procurement@mycompany.com.lr"
+                    />
+                  </div>
+                </div>
+
+                {/* UPLOAD PROOF OF 51% BENEFICIAL OWNERSHIP */}
+                <div style={{ background: '#f8faf9', border: '1px solid #dce5e0', borderRadius: '8px', padding: '18px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 700, color: '#133e36', display: 'block', marginBottom: '4px' }}>
+                    Upload Proof of Registration &amp; 51% Ownership (LBR Articles / Stock Ledger / Tax Clearance)
+                  </label>
+                  <p style={{ fontSize: '12px', color: '#687b73', margin: '0 0 12px' }}>
+                    Attach your Liberia Business Registry (LBR) Certificate, Articles of Incorporation specifying Grand Gedean shareholders, or CDA Cooperative Registration.
+                  </p>
+
+                  {/* HIDDEN NATIVE FILE INPUT */}
+                  <input
+                    ref={businessFileInputRef}
+                    type="file"
+                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                    onChange={handleBusinessProofFileUpload}
+                    style={{ display: 'none' }}
+                  />
+
+                  {/* UPLOAD STATUS CARD */}
+                  {businessForm.proofFileName ? (
+                    <div style={{ background: '#fff', border: '2px solid #2e7d32', borderRadius: '8px', padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ width: '42px', height: '42px', borderRadius: '8px', background: '#e8f5e9', color: '#2e7d32', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <FileCheck size={24} />
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '14px', fontWeight: 700, color: '#1b4d24' }}>
+                            {businessForm.proofFileName}
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#2e7d32', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                            <span>{businessForm.proofFileSize}</span>
+                            <span>•</span>
+                            <span style={{ fontWeight: 600 }}>✓ Verified Ownership Ledger Attached</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => businessFileInputRef.current?.click()}
+                          style={{ fontSize: '12px' }}
+                        >
+                          Change Document
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleRemoveBusinessProof}
+                          style={{ color: '#dc2626', fontSize: '12px' }}
+                        >
+                          <Trash2 size={14} /> Remove
+                        </Button>
+                      </div>
+                    </div>
+                  ) : isUploadingBusinessProof ? (
+                    <div style={{ background: '#fff', border: '2px dashed #14493e', borderRadius: '8px', padding: '24px', textAlign: 'center' }}>
+                      <RefreshCw size={24} className="spin" style={{ color: '#14493e', margin: '0 auto 8px', animation: 'spin 1s linear infinite' }} />
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: '#14493e' }}>Verifying ownership document format...</div>
+                    </div>
+                  ) : (
+                    <div>
+                      {/* DRAG-AND-DROP ZONE */}
+                      <div
+                        onClick={() => businessFileInputRef.current?.click()}
+                        onDragOver={(e) => { e.preventDefault(); setBusinessProofDragActive(true); }}
+                        onDragLeave={() => setBusinessProofDragActive(false)}
+                        onDrop={handleBusinessProofDrop}
+                        style={{
+                          border: `2px dashed ${businessProofDragActive ? '#1b5e20' : '#b7cebf'}`,
+                          background: businessProofDragActive ? '#eaf4ee' : '#fff',
+                          borderRadius: '8px',
+                          padding: '22px',
+                          textAlign: 'center',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#e8f5e9', color: '#2e7d32', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px' }}>
+                          <UploadCloud size={24} />
+                        </div>
+                        <div style={{ fontSize: '14px', fontWeight: 700, color: '#133e36', marginBottom: '4px' }}>
+                          Click to Browse LBR / Articles of Incorporation or Drag &amp; Drop Here
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#687b73', marginBottom: '12px' }}>
+                          Supported formats: PDF, DOC, DOCX, JPG, PNG (Max 15MB)
+                        </div>
+                        <div style={{ display: 'inline-flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                          <Button
+                            type="button"
+                            className="primary"
+                            size="sm"
+                            onClick={(e) => { e.stopPropagation(); businessFileInputRef.current?.click(); }}
+                            style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}
+                          >
+                            <FileUp size={14} /> Select Document from Device
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => { e.stopPropagation(); handleUseSampleBusinessProof(); }}
+                            style={{ fontSize: '12px', borderColor: '#a3cfbb', color: '#133e36' }}
+                          >
+                            ⚡ Use Sample LBR Articles (51% Verified)
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* MANDATORY BENEFICIAL OWNERSHIP DECLARATION */}
+                <div style={{ background: '#f5f7f6', border: '1px solid #d5ded9', borderRadius: '8px', padding: '14px 18px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                  <input
+                    type="checkbox"
+                    id="businessConsentCheck"
+                    checked={businessForm.consent}
+                    onChange={(e) => setBusinessForm({ ...businessForm, consent: e.target.checked })}
+                    style={{ marginTop: '3px', cursor: 'pointer' }}
+                    required
+                  />
+                  <label htmlFor="businessConsentCheck" style={{ fontSize: '13px', color: '#24362f', cursor: 'pointer', lineHeight: '1.5' }}>
+                    <strong>Mandatory Beneficial Ownership Attestation:</strong> I solemnly declare under penalty of perjury that this enterprise is genuinely owned at least 51% by bona fide citizens of Grand Gedeh County and does not operate as a front or proxy for non-county or foreign third parties. I authorize the Grand Gedeh Citizens Development Council (GGCDC) and the Chamber of Commerce to conduct on-site physical audits of our yard/fleet and submit our profile to Concessionaires and EPC prime contractors for mandatory local procurement award under Section 13 of the Putu Mineral Development Agreement.
+                  </label>
+                </div>
+
+                {/* SUBMIT BUTTON */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                  <Button
+                    type="submit"
+                    className="primary"
+                    style={{ height: '44px', padding: '0 26px', fontSize: '14px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}
+                  >
+                    <Send size={16} /> Submit Enterprise for Prequalification &amp; Generate Certificate
+                  </Button>
+                </div>
+              </form>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* VIEW 2: CERTIFIED 51%+ CONTRACTOR DIRECTORY */}
+      {businessView === 'directory' && (
+        <div>
+          {/* STATS TILES */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '22px' }}>
+            <div style={{ background: '#f4f9f6', border: '1px solid #cfe2d8', borderRadius: '8px', padding: '14px 18px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, color: '#133e36', textTransform: 'uppercase' }}>Certified Local Contractors</div>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: '#133e36', margin: '4px 0 0' }}>{records.filter(r => r.module === 'suppliers').length}</div>
+            </div>
+            <div style={{ background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: '8px', padding: '14px 18px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, color: '#3730a3', textTransform: 'uppercase' }}>100% Grand Gedean Owned</div>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: '#3730a3', margin: '4px 0 0' }}>
+                {records.filter(r => r.module === 'suppliers' && (r.details || '').includes('100% Grand Gedean')).length}
+              </div>
+            </div>
+            <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '8px', padding: '14px 18px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, color: '#92400e', textTransform: 'uppercase' }}>Civil Construction &amp; Camp Builders</div>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: '#92400e', margin: '4px 0 0' }}>
+                {records.filter(r => r.module === 'suppliers' && (r.details || '').includes('Civil Construction')).length}
+              </div>
+            </div>
+            <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '14px 18px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, color: '#166534', textTransform: 'uppercase' }}>Prequalified Bid-Ready</div>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: '#166534', margin: '4px 0 0' }}>100%</div>
+            </div>
+          </div>
+
+          {/* FILTER BAR */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ fontSize: '14px', color: '#556b62' }}>
+              Showing <strong>{registeredBusinesses.length}</strong> audited Grand Gedean enterprises eligible for concession tenders:
+            </div>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <select
+                value={businessSectorFilter}
+                onChange={(e) => setBusinessSectorFilter(e.target.value)}
+                style={{ height: '36px', borderRadius: '6px', border: '1px solid #d5ded9', padding: '0 10px', fontSize: '13px' }}
+              >
+                <option value="All">All Commercial Sectors</option>
+                <option value="Civil Construction">Civil Construction (Offices, Canteens, Schools, Clinics)</option>
+                <option value="Catering">Catering, Canteen &amp; Food Service</option>
+                <option value="Haulage">Haulage &amp; Earthmoving</option>
+                <option value="Metal Fabrication">Metal Fabrication &amp; Welding</option>
+                <option value="Agriculture">Fresh Farm Supplies</option>
+              </select>
+
+              <select
+                value={businessOwnershipFilter}
+                onChange={(e) => setBusinessOwnershipFilter(e.target.value)}
+                style={{ height: '36px', borderRadius: '6px', border: '1px solid #d5ded9', padding: '0 10px', fontSize: '13px' }}
+              >
+                <option value="All">All Ownership Tiers</option>
+                <option value="100%">100% Grand Gedean Owned</option>
+                <option value="75%">75% - 99% Grand Gedean Owned</option>
+                <option value="51%">51% - 74% Statutory Minimum</option>
+              </select>
+            </div>
+          </div>
+
+          {/* TABLE OF REGISTERED BUSINESSES */}
+          <div className="tableWrap">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Enterprise &amp; Yard Location</TableHead>
+                  <TableHead>Ownership &amp; Principals</TableHead>
+                  <TableHead>Commercial Sector</TableHead>
+                  <TableHead>Fleet &amp; Capacity</TableHead>
+                  <TableHead>Prequalification Status</TableHead>
+                  <TableHead style={{ textAlign: 'right' }}>Official Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {registeredBusinesses.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} style={{ textAlign: 'center', padding: '30px', color: '#687b73' }}>
+                      No contractors found matching the selected filter criteria.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  registeredBusinesses.map((b) => (
+                    <TableRow key={b.id}>
+                      <TableCell>
+                        <strong style={{ color: '#11352f', display: 'block', fontSize: '14px' }}>{b.name}</strong>
+                        <small style={{ color: '#6c8077' }}>{b.headquarters}</small>
+                      </TableCell>
+                      <TableCell>
+                        <span style={{
+                          display: 'inline-block',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          padding: '2px 8px',
+                          borderRadius: '12px',
+                          background: b.ownership.includes('100%') ? '#e0f2fe' : '#fef3c7',
+                          color: b.ownership.includes('100%') ? '#0369a1' : '#92400e',
+                          marginBottom: '4px'
+                        }}>
+                          {b.ownership}
+                        </span>
+                        <div style={{ fontSize: '12px', color: '#374151' }}>{b.principals}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div style={{ fontSize: '13px', fontWeight: 600, color: '#1a2e26' }}>{b.sector}</div>
+                        <small style={{ color: '#687b73', display: 'block' }}>{b.registration}</small>
+                      </TableCell>
+                      <TableCell style={{ maxWidth: '240px' }}>
+                        <div style={{ fontSize: '12px', color: '#4b5563', lineHeight: '1.4' }}>
+                          {b.capacity.length > 80 ? b.capacity.slice(0, 78) + '…' : b.capacity}
+                        </div>
+                        <span style={{ fontSize: '11px', color: '#166534', fontWeight: 600 }}>{b.employees}</span>
+                      </TableCell>
+                      <TableCell>
+                        <span style={{
+                          display: 'inline-block',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          background: '#e8f5e9',
+                          color: '#2e7d32'
+                        }}>
+                          {b.prequalificationStatus}
+                        </span>
+                        <small style={{ display: 'block', color: '#6c8077', marginTop: '2px' }}>{b.taxStatus}</small>
+                      </TableCell>
+                      <TableCell style={{ textAlign: 'right' }}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setBusinessModalVendor(b)}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: 600 }}
+                        >
+                          <Printer size={13} /> View Official Endorsement
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW 3: CONCESSION TENDERS & LOCAL QUOTAS */}
+      {businessView === 'tenders' && (
+        <div>
+          {/* STATUTORY SECTION 13 EXPLAINER BANNER */}
+          <div style={{ background: '#fdfbf7', border: '1px solid #ecd8a5', borderRadius: '10px', padding: '20px', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+              <ShieldCheck size={20} color="#b45309" />
+              <strong style={{ fontSize: '16px', color: '#78350f', fontFamily: 'Georgia, serif' }}>
+                Section 13 (Local Content) Protected Procurement Packages
+              </strong>
+            </div>
+            <p style={{ margin: 0, fontSize: '13px', color: '#5b4010', lineHeight: '1.6' }}>
+              The Putu Mineral Development Agreement mandates that civil construction (camp offices, staff quarters, central canteens, schools, and clinics), local catering, crushed aggregate haulage, and site security packages <strong>must be awarded on a priority first-right basis to registered Grand Gedean contractors with ≥51% local ownership</strong>. GGCDC matches prequalified local firms directly to active tender scopes.
+            </p>
+          </div>
+
+          {/* TENDER LISTINGS */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {concessionTenders.map((t) => (
+              <div
+                key={t.id}
+                style={{
+                  background: '#fff',
+                  border: '1px solid #dce5e0',
+                  borderRadius: '10px',
+                  padding: '22px 26px',
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 260px',
+                  gap: '20px',
+                  alignItems: 'start'
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 800, color: '#133e36', background: '#eaf4ee', padding: '3px 8px', borderRadius: '4px' }}>
+                      {t.category}
+                    </span>
+                    <span className="status in-progress">Active Tender</span>
+                  </div>
+                  <h3 style={{ font: '700 18px Georgia', margin: '0 0 8px', color: '#133e36' }}>
+                    {t.title}
+                  </h3>
+                  <p style={{ fontSize: '13px', color: '#556b62', margin: '0 0 12px', lineHeight: '1.5' }}>
+                    {t.summary}
+                  </p>
+                  <div style={{ background: '#f8faf9', padding: '10px 14px', borderRadius: '6px', border: '1px solid #e1ebe5', fontSize: '12px', color: '#274b41' }}>
+                    <strong>Mandatory Section 13 Quota:</strong> {t.localContent}
+                  </div>
+                </div>
+
+                <div style={{ background: '#fafcfb', border: '1px solid #e1ebe5', borderRadius: '8px', padding: '16px' }}>
+                  <div style={{ marginBottom: '10px' }}>
+                    <span style={{ fontSize: '11px', color: '#7a8e85', textTransform: 'uppercase', fontWeight: 700 }}>Contract Budget</span>
+                    <div style={{ fontSize: '18px', fontWeight: 800, color: '#133e36' }}>{t.estimatedValue}</div>
+                  </div>
+                  <div style={{ marginBottom: '14px' }}>
+                    <span style={{ fontSize: '11px', color: '#7a8e85', textTransform: 'uppercase', fontWeight: 700 }}>Submission Deadline</span>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#445b52' }}>{t.deadline}</div>
+                  </div>
+                  <Button
+                    className="primary"
+                    size="sm"
+                    style={{ width: '100%', fontSize: '12px' }}
+                    onClick={() => {
+                      setBusinessView('directory');
+                      if (t.category.includes('Civil Construction')) setBusinessSectorFilter('Civil Construction');
+                      else if (t.category.includes('Catering')) setBusinessSectorFilter('Catering');
+                      else if (t.category.includes('Aggregate') || t.category.includes('Haulage')) setBusinessSectorFilter('Haulage');
+                      else setBusinessSectorFilter('All');
+                    }}
+                  >
+                    View Matched 51% Contractors →
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   // ----------------------------------------------------------------------
   // SCENARIO 1: PUBLIC CIVIC PORTAL (FULL-WIDTH, STRICTLY NO INTERNAL SIDEBAR)
   // ----------------------------------------------------------------------
@@ -2563,6 +3696,12 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
             >
               Workforce Talent Pool
             </button>
+            <button
+              className={`publicNavLink ${publicTab === 'businesses' ? 'activeNavLink' : ''}`}
+              onClick={() => setPublicTab('businesses')}
+            >
+              51% Local Businesses
+            </button>
           </nav>
 
           <div className="publicNavActions">
@@ -2595,6 +3734,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
             <button className={`mobileLink ${publicTab === 'putu-group' ? 'chosen' : ''}`} onClick={() => { setPublicTab('putu-group'); setPublicMobileNav(false); }}>Putu Working Groups (14)</button>
             <button className={`mobileLink ${publicTab === 'grievance' ? 'chosen' : ''}`} onClick={() => { setPublicTab('grievance'); setPublicMobileNav(false); }}>Public Grievance Desk</button>
             <button className={`mobileLink ${publicTab === 'workforce' ? 'chosen' : ''}`} onClick={() => { setPublicTab('workforce'); setPublicMobileNav(false); }}>Workforce Talent Pool</button>
+            <button className={`mobileLink ${publicTab === 'businesses' ? 'chosen' : ''}`} onClick={() => { setPublicTab('businesses'); setPublicMobileNav(false); }}>51% Local Businesses</button>
             <Button className="primary" style={{ width: '100%', marginTop: '10px' }} onClick={() => { setViewMode('workspace'); setActiveTab('dashboard'); setPublicMobileNav(false); }}>
               <LayoutDashboard size={15} /> Enter Council Workspace
             </Button>
@@ -2856,6 +3996,9 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
 
           {/* TAB 7: WORKFORCE MATCHER */}
           {publicTab === 'workforce' && renderPublicWorkforceContent()}
+
+          {/* TAB 8: 51% LOCAL BUSINESS REGISTRY */}
+          {publicTab === 'businesses' && renderPublicBusinessContent()}
         </div>
 
         {/* PUBLIC FOOTER */}
@@ -2885,6 +4028,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                 <ul>
                   <li><button onClick={() => setPublicTab('grievance')} style={{ background: 'none', border: 'none', color: '#cbdcd4', cursor: 'pointer', padding: 0, textAlign: 'left', font: 'inherit' }}>Confidential Grievance Portal</button></li>
                   <li><button onClick={() => setPublicTab('workforce')} style={{ background: 'none', border: 'none', color: '#cbdcd4', cursor: 'pointer', padding: 0, textAlign: 'left', font: 'inherit' }}>Workforce Talent Matcher</button></li>
+                  <li><button onClick={() => setPublicTab('businesses')} style={{ background: 'none', border: 'none', color: '#cbdcd4', cursor: 'pointer', padding: 0, textAlign: 'left', font: 'inherit' }}>51% Local Contractor Registry</button></li>
                   <li><button onClick={() => setPublicTab('roadmap')} style={{ background: 'none', border: 'none', color: '#cbdcd4', cursor: 'pointer', padding: 0, textAlign: 'left', font: 'inherit' }}>5-Phase Formation Roadmap</button></li>
                   <li><button onClick={() => { setViewMode('workspace'); setActiveTab('dashboard'); }} style={{ background: 'none', border: 'none', color: '#f3d999', cursor: 'pointer', padding: 0, textAlign: 'left', fontWeight: 'bold', font: 'inherit' }}>Council Member Login →</button></li>
                 </ul>
@@ -2897,6 +4041,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
           </div>
         </footer>
         {renderRecommendationModal()}
+        {renderBusinessEndorsementModal()}
       </div>
     );
   }
@@ -4078,6 +5223,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
         </DialogContent>
       </Dialog>
       {renderRecommendationModal()}
+      {renderBusinessEndorsementModal()}
     </div>
   );
 }
