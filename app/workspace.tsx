@@ -398,8 +398,11 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
   });
   const [businessSuccessId, setBusinessSuccessId] = useState<string | null>(null);
   const [isUploadingBusinessProof, setIsUploadingBusinessProof] = useState(false);
-  const [businessProofDragActive, setBusinessProofDragActive] = useState(false);
   const businessFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Command Center: Dashboard Sub-View & Approvals Queue Filter
+  const [dashboardView, setDashboardView] = useState<'overview' | 'approvals'>('overview');
+  const [approvalsFilter, setApprovalsFilter] = useState<'all' | 'workforce' | 'suppliers' | 'verified'>('all');
 
   // Tool: Grievance Portal
   const [grievanceForm, setGrievanceForm] = useState({
@@ -583,6 +586,77 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
     setMobileMenuOpen(false);
     setFeedback('You have been securely logged out of the Council Workspace.');
     setTimeout(() => setFeedback(''), 5000);
+  };
+
+  // Pending verification and approvals queue items
+  const pendingVerificationItems = useMemo(() => {
+    return records.filter(r => 
+      (r.module === 'workforce' || r.module === 'suppliers') && 
+      (r.status === 'In progress' || r.status === 'Under review' || r.status === 'Draft' || r.status === 'Awaiting response')
+    );
+  }, [records]);
+
+  // All verified/approved registrations
+  const verifiedRegistrationItems = useMemo(() => {
+    return records.filter(r => 
+      (r.module === 'workforce' || r.module === 'suppliers') && 
+      (r.status === 'Verified' || r.status === 'Closed')
+    );
+  }, [records]);
+
+  // Approve and certify record handler
+  const handleApproveRecord = (rec: RecordItem) => {
+    if (!currentRole.canCreate && !currentRole.canEdit) {
+      setError(`Your current persona (${currentRole.name}) has Read-Only status and cannot verify or certify applications.`);
+      return;
+    }
+    let detailsObj: any = {};
+    try { detailsObj = JSON.parse(rec.details || '{}'); } catch {}
+
+    const isWorkforce = rec.module === 'workforce';
+    const isBusiness = rec.module === 'suppliers' || rec.module === 'procurement';
+
+    const updatedDetails = {
+      ...detailsObj,
+      auditDate: new Date().toISOString().split('T')[0],
+      auditedBy: `${currentRole.name} (${currentRole.badge})`,
+      verificationStatus: 'Officially Verified & Certified',
+      recommendationStatus: isWorkforce ? 'Certified & Approved for Concession Direct Hire' : detailsObj.recommendationStatus,
+      prequalificationStatus: isBusiness ? 'Prequalified 51%+ Local Contractor (Current & Cleared)' : detailsObj.prequalificationStatus
+    };
+
+    StorageEngine.updateRecord(rec.id, {
+      status: 'Verified',
+      details: JSON.stringify(updatedDetails)
+    });
+
+    loadData();
+    setFeedback(`✓ ${rec.title} has been officially verified and certified under Section 11/13 of Putu MDA.`);
+    setTimeout(() => setFeedback(''), 6000);
+  };
+
+  // Request additional proof handler
+  const handleRequestMoreProof = (rec: RecordItem) => {
+    if (!currentRole.canCreate && !currentRole.canEdit) {
+      setError(`Your current persona (${currentRole.name}) cannot request documentation updates.`);
+      return;
+    }
+    let detailsObj: any = {};
+    try { detailsObj = JSON.parse(rec.details || '{}'); } catch {}
+
+    const updatedDetails = {
+      ...detailsObj,
+      reviewNote: `Action Required: ${currentRole.badge} requested supplemental proof of residency or legal clearance.`
+    };
+
+    StorageEngine.updateRecord(rec.id, {
+      status: 'Awaiting response',
+      details: JSON.stringify(updatedDetails)
+    });
+
+    loadData();
+    setFeedback(`Status for ${rec.title} updated to 'Awaiting response' (Additional proof requested).`);
+    setTimeout(() => setFeedback(''), 6000);
   };
 
   // Open modal for new record (RBAC checked)
@@ -4941,62 +5015,420 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
               {/* STATS TILES */}
               <div className="stats">
                 <div>
-                  <span>Total Commitments & Records</span>
+                  <span>Total Commitments &amp; Records</span>
                   <strong>{records.length}</strong>
                   <small>Across 14 Putu working groups</small>
                 </div>
-                <div>
-                  <span>Pending Actions & Reviews</span>
-                  <strong>{records.filter(r => !['Closed', 'Verified'].includes(r.status)).length}</strong>
-                  <small>Require advocacy or follow-up</small>
+                <div 
+                  style={{ cursor: 'pointer', border: pendingVerificationItems.length > 0 ? '1.5px solid #d97706' : undefined }}
+                  onClick={() => setDashboardView('approvals')}
+                  title="Click to view pending verification & approvals queue"
+                >
+                  <span style={{ color: pendingVerificationItems.length > 0 ? '#b45309' : undefined, fontWeight: pendingVerificationItems.length > 0 ? 700 : undefined }}>
+                    Pending Verifications &amp; Approvals
+                  </span>
+                  <strong style={{ color: pendingVerificationItems.length > 0 ? '#d97706' : undefined }}>
+                    {pendingVerificationItems.length}
+                  </strong>
+                  <small style={{ color: '#b45309', fontWeight: 600 }}>Review &amp; certify applications →</small>
                 </div>
                 <div>
-                  <span>Verified Workforce Talent</span>
-                  <strong>{moduleCounts.workforce || 0}</strong>
-                  <small>Consent verified local artisans</small>
+                  <span>51% Local Contractors</span>
+                  <strong>{records.filter(r => r.module === 'suppliers').length}</strong>
+                  <small>Vetted beneficial ownership</small>
                 </div>
                 <div>
-                  <span>Active Relational Links</span>
-                  <strong>{links.length}</strong>
-                  <small>Cross-sector verified linkages</small>
+                  <span>Workforce Talent Pool</span>
+                  <strong>{records.filter(r => r.module === 'workforce').length}</strong>
+                  <small>Certified artisans &amp; TVET trainees</small>
                 </div>
               </div>
 
-              {/* QUICK WORKING GROUP GRID */}
-              <h2 style={{ font: '700 22px Georgia', margin: '32px 0 16px', color: '#133e36' }}>
-                Putu Mining & Development Working Group Areas
-              </h2>
-              <div className="moduleGrid">
-                {modules.map((m) => {
-                  const Icon = moduleIcons[m.id] || FileText;
-                  const isPrimary = currentRole.primaryModules.includes(m.id);
-                  return (
+              {/* DASHBOARD SUB-VIEW SWITCHER: 14 Working Groups vs Tripartite Approvals Queue */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '2px solid #e2ede7', paddingBottom: '12px', margin: '36px 0 24px', flexWrap: 'wrap', gap: '14px' }}>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    onClick={() => setDashboardView('overview')}
+                    style={{
+                      padding: '9px 18px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: dashboardView === 'overview' ? '#14493e' : '#eaf2ee',
+                      color: dashboardView === 'overview' ? '#fff' : '#284c40',
+                      fontWeight: 700,
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    <LayoutDashboard size={16} /> 14 Operational Work Areas
+                  </button>
+
+                  <button
+                    onClick={() => setDashboardView('approvals')}
+                    style={{
+                      padding: '9px 18px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: dashboardView === 'approvals' ? '#14493e' : '#eaf2ee',
+                      color: dashboardView === 'approvals' ? '#fff' : '#284c40',
+                      fontWeight: 700,
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    <ClipboardCheck size={16} /> Tripartite Verification &amp; Approvals Queue
+                    {pendingVerificationItems.length > 0 && (
+                      <span style={{
+                        background: '#d97706',
+                        color: '#fff',
+                        fontSize: '11px',
+                        fontWeight: 800,
+                        padding: '2px 8px',
+                        borderRadius: '12px'
+                      }}>
+                        {pendingVerificationItems.length} Pending
+                      </span>
+                    )}
+                  </button>
+                </div>
+
+                {dashboardView === 'approvals' && (
+                  <div style={{ display: 'flex', gap: '6px', background: '#eef5f1', padding: '4px', borderRadius: '8px', flexWrap: 'wrap' }}>
                     <button
-                      key={m.id}
-                      className="moduleCard"
-                      style={isPrimary ? { borderColor: '#1b5e20', background: '#fcfdfc' } : {}}
-                      onClick={() => {
-                        setActiveTab('putu-group');
-                        setActiveModuleId(m.id);
+                      onClick={() => setApprovalsFilter('all')}
+                      style={{
+                        border: 'none',
+                        padding: '5px 12px',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        background: approvalsFilter === 'all' ? '#fff' : 'transparent',
+                        color: approvalsFilter === 'all' ? '#14493e' : '#5a7368',
+                        boxShadow: approvalsFilter === 'all' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
+                        cursor: 'pointer'
                       }}
                     >
-                      <div className="moduleIcon">
-                        <Icon size={21} />
-                      </div>
-                      <div>
-                        <strong>{m.name}</strong>
-                        {isPrimary && (
-                          <span style={{ fontSize: '11px', color: '#1b5e20', fontWeight: 'bold', display: 'block', margin: '2px 0' }}>
-                            ★ Primary for your role
-                          </span>
-                        )}
-                        <p>{m.description}</p>
-                      </div>
-                      <span>{moduleCounts[m.id] || 0}</span>
+                      All Pending ({pendingVerificationItems.length})
                     </button>
-                  );
-                })}
+                    <button
+                      onClick={() => setApprovalsFilter('workforce')}
+                      style={{
+                        border: 'none',
+                        padding: '5px 12px',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        background: approvalsFilter === 'workforce' ? '#fff' : 'transparent',
+                        color: approvalsFilter === 'workforce' ? '#14493e' : '#5a7368',
+                        boxShadow: approvalsFilter === 'workforce' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Workers ({pendingVerificationItems.filter(r => r.module === 'workforce').length})
+                    </button>
+                    <button
+                      onClick={() => setApprovalsFilter('suppliers')}
+                      style={{
+                        border: 'none',
+                        padding: '5px 12px',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        background: approvalsFilter === 'suppliers' ? '#fff' : 'transparent',
+                        color: approvalsFilter === 'suppliers' ? '#14493e' : '#5a7368',
+                        boxShadow: approvalsFilter === 'suppliers' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      51% Businesses ({pendingVerificationItems.filter(r => r.module === 'suppliers').length})
+                    </button>
+                    <button
+                      onClick={() => setApprovalsFilter('verified')}
+                      style={{
+                        border: 'none',
+                        padding: '5px 12px',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        background: approvalsFilter === 'verified' ? '#fff' : 'transparent',
+                        color: approvalsFilter === 'verified' ? '#14493e' : '#5a7368',
+                        boxShadow: approvalsFilter === 'verified' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Certified &amp; Approved ({verifiedRegistrationItems.length})
+                    </button>
+                  </div>
+                )}
               </div>
+
+              {/* VIEW A: 14 WORKING GROUP MODULES */}
+              {dashboardView === 'overview' && (
+                <>
+                  <h2 style={{ font: '700 22px Georgia', margin: '0 0 16px', color: '#133e36' }}>
+                    Putu Mining &amp; Development Working Group Areas
+                  </h2>
+                  <div className="moduleGrid">
+                    {modules.map((m) => {
+                      const Icon = moduleIcons[m.id] || FileText;
+                      const isPrimary = currentRole.primaryModules.includes(m.id);
+                      return (
+                        <button
+                          key={m.id}
+                          className="moduleCard"
+                          style={isPrimary ? { borderColor: '#1b5e20', background: '#fcfdfc' } : {}}
+                          onClick={() => {
+                            setActiveTab('putu-group');
+                            setActiveModuleId(m.id);
+                          }}
+                        >
+                          <div className="moduleIcon">
+                            <Icon size={21} />
+                          </div>
+                          <div>
+                            <strong>{m.name}</strong>
+                            {isPrimary && (
+                              <span style={{ fontSize: '11px', color: '#1b5e20', fontWeight: 'bold', display: 'block', margin: '2px 0' }}>
+                                ★ Primary for your role
+                              </span>
+                            )}
+                            <p>{m.description}</p>
+                          </div>
+                          <span>{moduleCounts[m.id] || 0}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+
+              {/* VIEW B: TRIPARTITE VERIFICATION & APPROVALS QUEUE */}
+              {dashboardView === 'approvals' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  {/* Institutional Vetting Authority Notice */}
+                  <div style={{ background: '#f4f8f6', border: '1px solid #d3e4dc', borderRadius: '10px', padding: '16px 20px', display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
+                    <ShieldCheck size={24} color="#14493e" style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <div style={{ fontSize: '13px', color: '#2d4b3f', lineHeight: 1.5 }}>
+                      <strong style={{ color: '#10352f', display: 'block', fontSize: '14px', marginBottom: '4px' }}>
+                        Tripartite Vetting &amp; Statutory Certification Protocol
+                      </strong>
+                      Worker talent and 51% business applications are audited under Section 11 &amp; Section 13 of the Putu MDA. Approvals require tripartite concurrence: <strong>Council of Paramount Chiefs</strong> (customary residency/indigeneity), <strong>GGAA Technical Advisory / Chamber of Commerce</strong> (credentials &amp; 51% equity audit), and <strong>GGBA Legal Counsel</strong> (statutory compliance).
+                    </div>
+                  </div>
+
+                  {/* Queue Items List */}
+                  {(() => {
+                    const list = approvalsFilter === 'verified'
+                      ? verifiedRegistrationItems
+                      : approvalsFilter === 'workforce'
+                      ? pendingVerificationItems.filter(r => r.module === 'workforce')
+                      : approvalsFilter === 'suppliers'
+                      ? pendingVerificationItems.filter(r => r.module === 'suppliers')
+                      : pendingVerificationItems;
+
+                    if (list.length === 0) {
+                      return (
+                        <div style={{ background: '#fff', border: '1px solid #dce5e0', borderRadius: '10px', padding: '48px 24px', textAlign: 'center', color: '#688075' }}>
+                          <CheckCircle2 size={36} color="#2e7d32" style={{ margin: '0 auto 12px' }} />
+                          <strong style={{ fontSize: '16px', color: '#133e36', display: 'block', marginBottom: '6px' }}>
+                            {approvalsFilter === 'verified' ? 'No certified registrations found.' : 'All registrations in this category have been audited!'}
+                          </strong>
+                          <p style={{ margin: 0, fontSize: '13px' }}>
+                            New public registrations from the Workforce Desk and 51% Contractor Registry will appear here automatically.
+                          </p>
+                        </div>
+                      );
+                    }
+
+                    return list.map((item) => {
+                      let details: any = {};
+                      try { details = JSON.parse(item.details || '{}'); } catch { details = {}; }
+
+                      const isWorkforce = item.module === 'workforce';
+                      const isVerified = item.status === 'Verified' || item.status === 'Closed';
+                      const trackingCode = details.trackingCode || item.id;
+                      const proofDoc = details.proofDocument || 'Documentation attached';
+
+                      return (
+                        <div
+                          key={item.id}
+                          style={{
+                            background: '#fff',
+                            border: isVerified ? '1px solid #c8e6c9' : '1px solid #dce5e0',
+                            borderRadius: '12px',
+                            padding: '22px 24px',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
+                            <div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                                <span style={{
+                                  fontSize: '11px',
+                                  fontWeight: 800,
+                                  letterSpacing: '0.06em',
+                                  padding: '3px 8px',
+                                  borderRadius: '4px',
+                                  textTransform: 'uppercase',
+                                  background: isWorkforce ? '#e0f2fe' : '#fef3c7',
+                                  color: isWorkforce ? '#0369a1' : '#92400e'
+                                }}>
+                                  {isWorkforce ? 'Workforce Talent' : '51% Grand Gedean Business'}
+                                </span>
+                                <span style={{ fontSize: '12px', fontFamily: 'monospace', color: '#688075', fontWeight: 700 }}>
+                                  {trackingCode}
+                                </span>
+                              </div>
+                              <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#10352f', margin: 0 }}>
+                                {item.title}
+                              </h3>
+                              <div style={{ fontSize: '13px', color: '#5f786d', marginTop: '2px' }}>
+                                📍 {item.community || 'Grand Gedeh County'} · {item.county || 'Grand Gedeh'}
+                              </div>
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span className={`status ${item.status.toLowerCase().replace(/\s+/g, '-')}`}>
+                                {item.status}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Summary & Qualification / Fleet Details */}
+                          <p style={{ fontSize: '13px', color: '#3d5248', lineHeight: 1.5, margin: '0 0 14px', background: '#f8faf9', padding: '10px 14px', borderRadius: '6px', border: '1px solid #edf2ef' }}>
+                            {item.summary || details.backgroundNotes || 'Applicant details on file with the Secretariat.'}
+                          </p>
+
+                          {/* Verification & Proof Credentials Grid */}
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', marginBottom: '16px', fontSize: '12px', color: '#4d665b' }}>
+                            <div>
+                              <span style={{ color: '#7a8e85', display: 'block', fontWeight: 600 }}>Attached Proof Document:</span>
+                              <strong style={{ color: '#133e36', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <FileCheck size={14} color="#1b5e20" /> {proofDoc}
+                              </strong>
+                            </div>
+                            <div>
+                              <span style={{ color: '#7a8e85', display: 'block', fontWeight: 600 }}>
+                                {isWorkforce ? 'Trade & Experience:' : 'Ownership Standing:'}
+                              </span>
+                              <strong style={{ color: '#133e36' }}>
+                                {isWorkforce ? `${details.occupation || 'Artisan'} (${details.experience || '0'} yrs)` : (details.ownership || '≥51% Grand Gedean Owned')}
+                              </strong>
+                            </div>
+                            <div>
+                              <span style={{ color: '#7a8e85', display: 'block', fontWeight: 600 }}>
+                                {isWorkforce ? 'Endorsement Channel:' : 'Tax & Commercial Standing:'}
+                              </span>
+                              <strong style={{ color: '#133e36' }}>
+                                {isWorkforce ? (details.endorsement || 'Community Reference') : (details.taxStatus || 'Current & Cleared')}
+                              </strong>
+                            </div>
+                          </div>
+
+                          {/* Vetting Checklist Badges */}
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', padding: '10px 12px', background: '#f0f5f2', borderRadius: '6px', marginBottom: '16px', fontSize: '11px', color: '#284c40' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}>
+                              <CheckCircle2 size={13} color="#2e7d32" /> Council of Chiefs: Residency Vetted
+                            </span>
+                            <span>•</span>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}>
+                              <CheckCircle2 size={13} color="#2e7d32" /> {isWorkforce ? 'GGAA Panel: Technical Credentials Verified' : 'Chamber of Commerce: 51% Equity Audited'}
+                            </span>
+                            <span>•</span>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}>
+                              <CheckCircle2 size={13} color="#2e7d32" /> GGBA Legal Counsel: {isWorkforce ? 'Section 11 Compliant' : 'Section 13 Compliant'}
+                            </span>
+                          </div>
+
+                          {/* Actions */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', borderTop: '1px solid #edf2ef', paddingTop: '14px' }}>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              {!isVerified ? (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    className="primary"
+                                    onClick={() => handleApproveRecord(item)}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}
+                                  >
+                                    <CheckCircle2 size={15} /> Approve &amp; Certify
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleRequestMoreProof(item)}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#b45309', borderColor: '#fde68a' }}
+                                  >
+                                    <MessageSquareWarning size={15} /> Request Additional Proof
+                                  </Button>
+                                </>
+                              ) : (
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#2e7d32', fontWeight: 700, background: '#e8f5e9', padding: '6px 12px', borderRadius: '6px' }}>
+                                  <CheckCircle2 size={16} /> Certified &amp; Vetted under Section 11/13
+                                </span>
+                              )}
+                            </div>
+
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                if (isWorkforce) {
+                                  const c = workforceCandidates.find(cand => cand.id === item.id) || {
+                                    id: item.id,
+                                    name: item.title,
+                                    community: item.community || 'Putu Jarwodee',
+                                    occupation: details.occupation || 'Artisan',
+                                    qualification: details.qualification || 'Certified',
+                                    institution: details.institution || 'Technical Institute',
+                                    experience: details.experience || '3',
+                                    skills: details.skills || 'Technical skills on file',
+                                    availability: details.availability || 'Available now',
+                                    proofDocument: proofDoc,
+                                    trackingCode,
+                                    recommendationStatus: 'Certified & Approved for Concession Direct Hire',
+                                    endorsement: details.endorsement || 'Community Traditional Council',
+                                    trackType: details.track?.includes('Track B') ? 'Track B' : 'Track A'
+                                  };
+                                  setRecommendationModalCandidate(c);
+                                } else {
+                                  const b = registeredBusinesses.find(biz => biz.id === item.id) || {
+                                    id: item.id,
+                                    name: item.title,
+                                    community: item.community || 'Grand Gedeh',
+                                    county: item.county || 'Grand Gedeh',
+                                    ownership: details.ownership || '100% Grand Gedean Owned',
+                                    ownershipPercentage: details.ownershipPercentage || '100%',
+                                    sector: details.sector || 'Civil Construction',
+                                    principals: details.principals || 'Grand Gedean Founders',
+                                    registration: details.registration || 'Liberia Business Registry Verified',
+                                    taxStatus: details.taxStatus || 'Current & Cleared',
+                                    capacity: details.capacity || 'Operational fleet on site',
+                                    employees: details.employees || 'Local technical team',
+                                    prequalificationStatus: 'Prequalified 51%+ Local Contractor',
+                                    trackingCode
+                                  };
+                                  setBusinessModalVendor(b);
+                                }
+                              }}
+                              style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#133e36' }}
+                            >
+                              <Award size={15} /> View Official Instrument &amp; QR Seal
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              )}
             </>
           )}
 
