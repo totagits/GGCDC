@@ -138,7 +138,7 @@ const ROLES: RoleDef[] = [
     canManageData: true,
     canAccessRestricted: true,
     primaryModules: ['agreements', 'land', 'employment', 'workforce', 'procurement', 'suppliers', 'skills', 'environment', 'infrastructure', 'benefits', 'grievances', 'transparency', 'monitoring', 'governance'],
-    description: 'Full administrative rights across all 14 Putu Mining Working Group modules, multi-stakeholder consultations, and system governance.'
+    description: 'Full administrative rights across Putu Mining Working Group modules, multi-stakeholder consultations, and system governance.'
   },
   {
     id: 'ggba',
@@ -177,7 +177,7 @@ const ROLES: RoleDef[] = [
     canManageData: false,
     canAccessRestricted: false,
     primaryModules: ['procurement', 'suppliers', 'skills', 'agreements'],
-    description: 'Vetting and advocating for 51% Grand Gedean enterprises, monitoring concession procurement tenders, and local content quotas under Section 13.'
+    description: 'Vetting and advocating for Grand Gedean enterprises, monitoring concession procurement tenders, and local content quotas under Section 13.'
   },
   {
     id: 'landowner',
@@ -368,7 +368,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
   const fileInputRefA = useRef<HTMLInputElement>(null);
   const fileInputRefB = useRef<HTMLInputElement>(null);
 
-  // Tool: 51% Grand Gedean Business Registry & Local Contractor Desk
+  // Tool: Grand Gedean Business Registry & Local Contractor Desk
   const [businessView, setBusinessView] = useState<'register' | 'directory' | 'tenders'>('register');
   const [businessSectorFilter, setBusinessSectorFilter] = useState('All');
   const [businessOwnershipFilter, setBusinessOwnershipFilter] = useState('All');
@@ -623,7 +623,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
       auditedBy: `${currentRole.name} (${currentRole.badge})`,
       verificationStatus: 'Officially Verified & Certified',
       recommendationStatus: isWorkforce ? 'Certified & Approved for Concession Direct Hire' : detailsObj.recommendationStatus,
-      prequalificationStatus: isBusiness ? 'Prequalified 51%+ Local Contractor (Current & Cleared)' : detailsObj.prequalificationStatus
+      prequalificationStatus: isBusiness ? 'Prequalified Local Contractor (Current & Cleared)' : detailsObj.prequalificationStatus
     };
 
     StorageEngine.updateRecord(rec.id, {
@@ -1104,7 +1104,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
       });
   }, [records, matcherTrade, matcherMinExp, matcherTrackFilter]);
 
-  // 51% Grand Gedean Registered Businesses for Directory & Tender Matching
+  // Grand Gedean Registered Businesses for Directory & Tender Matching
   const registeredBusinesses = useMemo(() => {
     return records
       .filter(r => r.module === 'suppliers')
@@ -1121,7 +1121,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
           community: r.community || details.headquarters || 'Grand Gedeh',
           county: r.county || 'Grand Gedeh',
           ownership: details.ownership || '100% Grand Gedean Owned',
-          ownershipPercentage: details.ownershipPercentage || (details.ownership?.includes('100%') ? '100%' : details.ownership?.includes('75%') ? '75%' : '51%'),
+          ownershipPercentage: details.ownershipPercentage || (details.ownership?.includes('100%') ? '100%' : details.ownership?.includes('75%') ? '75%' : 'Local'),
           sector: details.sector || 'Civil Construction & Camp Services',
           principals: details.principals || 'Grand Gedean Founders & Shareholders',
           registration: details.registration || 'Liberia Business Registry Verified',
@@ -1132,7 +1132,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
           pastContracts: details.pastContracts || 'Documented contractor track record on file',
           contact: details.contact || '',
           endorsement: details.endorsement || 'County Chamber of Commerce',
-          prequalificationStatus: details.prequalificationStatus || 'Prequalified 51%+ Local Contractor',
+          prequalificationStatus: details.prequalificationStatus || 'Prequalified Local Contractor',
           proofDocument: details.proofDocument || 'LBR Articles & Ownership Ledger Attached',
           trackingCode: details.trackingCode || `GGCDC-BIZ-${r.id.replace('rec-sup-', '')}`,
           summary: r.summary
@@ -1166,7 +1166,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
           deadline: details.deadline || r.due_date || '2026-10-15',
           estimatedValue: details.estimatedValue || 'To Be Announced',
           awardee: details.awardee || 'Tender Open for Bidding',
-          localContent: details.localContent || 'Statutory 51%+ Grand Gedean preference applies',
+          localContent: details.localContent || 'Statutory Grand Gedean preference applies',
           summary: r.summary,
           status: r.status
         };
@@ -1219,7 +1219,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
         proofFileSize: '2.4 MB',
         proofFileData: ''
       }));
-      setFeedback('Sample document attached: LBR Articles of Incorporation & 51% Beneficial Ownership Ledger');
+      setFeedback('Sample document attached: LBR Articles of Incorporation & Beneficial Ownership Ledger');
       setIsUploadingBusinessProof(false);
     }, 200);
   };
@@ -1254,7 +1254,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
       return;
     }
     if (!businessForm.consent) {
-      setError('Mandatory Safeguard: Legal declaration of bona fide 51% Grand Gedean beneficial ownership is required.');
+      setError('Mandatory Safeguard: Legal declaration of bona fide Grand Gedean beneficial ownership is required.');
       return;
     }
 
@@ -1275,7 +1275,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
       pastContracts: businessForm.pastContracts || 'Documented track record on file with GGCDC Chamber of Commerce',
       contact: `${businessForm.contactPerson ? businessForm.contactPerson + ' - ' : ''}${businessForm.phone}${businessForm.email ? ' / ' + businessForm.email : ''}`,
       endorsement: businessForm.endorsement,
-      prequalificationStatus: 'Prequalified 51%+ Local Contractor',
+      prequalificationStatus: 'Prequalified Local Contractor',
       proofDocument: businessForm.proofFileName ? `${businessForm.proofFileName} (${businessForm.proofFileSize})` : 'LBR Articles & Beneficial Ownership Certified on File',
       proofFileData: businessForm.proofFileData || undefined,
       trackingCode,
@@ -1293,16 +1293,16 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
       due_date: `${new Date().getFullYear()}-12-31`,
       summary: recordSummary,
       details: JSON.stringify(detailsObj),
-      created_by: 'Public 51% Enterprise Registration Desk'
+      created_by: 'Public Enterprise Registration Desk'
     });
 
     setBusinessSuccessId(trackingCode);
-    setFeedback(`Enterprise registered successfully! Reference ID: ${trackingCode}. Enrolled in 51% Prequalified Contractor Directory.`);
+    setFeedback(`Enterprise registered successfully! Reference ID: ${trackingCode}. Enrolled in Prequalified Local Contractor Directory.`);
     setError('');
     loadData();
   };
 
-  // Official GGCDC 51% Beneficial Ownership Certificate & Procurement Endorsement Modal
+  // Official GGCDC Beneficial Ownership Certificate & Procurement Endorsement Modal
   const renderBusinessEndorsementModal = () => {
     if (!businessModalVendor) return null;
     const v = businessModalVendor;
@@ -1421,7 +1421,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
               Statutory Local Content Quota Enforcement • Mineral Development Agreement Section 13
             </div>
             <h2 style={{ fontSize: '17px', fontWeight: 700, margin: '4px 0', color: '#133e36', fontFamily: 'Georgia, serif' }}>
-              OFFICIAL CERTIFICATE OF ≥51% GRAND GEDEH BENEFICIAL OWNERSHIP &amp; CONTRACTOR PREQUALIFICATION
+              OFFICIAL CERTIFICATE OF GRAND GEDEH BENEFICIAL OWNERSHIP &amp; CONTRACTOR PREQUALIFICATION
             </h2>
             <div style={{ fontSize: '12px', color: '#556b62', fontFamily: 'sans-serif' }}>
               Mandatory Priority Right for Civil Works, Camp Infrastructure, Catering, Haulage &amp; Local Supplies
@@ -1442,7 +1442,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
               </div>
             </div>
             <p style={{ margin: '0 0 12px' }}>
-              Following a rigorous forensic audit of corporate registry filings, ownership ledgers, and physical yard inspection, the GGCDC Technical Secretariat verifies that this commercial enterprise is genuinely owned at least <strong>51% (or more)</strong> by bona fide indigenes of Grand Gedeh County (Principals: <em>{v.principals}</em>) and does not operate as a proxy or pass-through front for foreign or non-county entities.
+              Following a rigorous forensic audit of corporate registry filings, ownership ledgers, and physical yard inspection, the GGCDC Technical Secretariat verifies that this commercial enterprise is genuinely owned by bona fide indigenes of Grand Gedeh County (Principals: <em>{v.principals}</em>) and does not operate as a proxy or pass-through front for foreign or non-county entities.
             </p>
             <p style={{ margin: '0 0 12px' }}>
               <strong>Certified Operational Scope:</strong> The enterprise possesses certified operational and technical capacity in <strong>{v.sector}</strong>, maintaining a local workforce of <strong>{v.employees}</strong> and documented physical plant/machinery ready for immediate deployment.
@@ -1507,7 +1507,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                 <span style={{ fontSize: '6px', fontWeight: 800, letterSpacing: '0.5px', textTransform: 'uppercase' }}>Republic of Liberia</span>
                 <ShieldCheck size={20} color="#1b5e20" style={{ margin: '1px 0' }} />
                 <strong style={{ fontSize: '7.5px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.4px' }}>GGCDC SEAL</strong>
-                <span style={{ fontSize: '6px', color: '#b45309', fontWeight: 800 }}>≥51% LOCAL</span>
+                <span style={{ fontSize: '6px', color: '#b45309', fontWeight: 800 }}>VERIFIED LOCAL</span>
               </div>
               <div>
                 <div style={{ fontSize: '11px', fontWeight: 800, color: '#133e36', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -2097,7 +2097,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
             <ul style={{ fontSize: '13px', color: '#274b42', lineHeight: 1.6, paddingLeft: '18px', margin: 0 }}>
               <li>County-centered, independent & nonpartisan</li>
               <li>Structured citizen coordination & evidence aggregation</li>
-              <li>Operates the specialized Putu Mining Working Group (14 focus areas)</li>
+              <li>Operates the specialized Putu Mining Working Group focus areas</li>
               <li>Does NOT negotiate mineral rights (belonging to GoL)</li>
               <li>Does NOT claim statutory powers (unlike a statutory Authority)</li>
             </ul>
@@ -2261,7 +2261,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
       <div className="heading">
         <div>
           <div className="eyebrow">FOUNDING REPRESENTATION STRUCTURE</div>
-          <h1>The 12 Founding Stakeholder Pillars</h1>
+          <h1>The Founding Stakeholder Pillars</h1>
           <p>
             Ensuring broad, balanced, and legitimate representation across customary landholders, women, youth, traditional chiefs, professionals, and diaspora partners.
           </p>
@@ -2314,7 +2314,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
           <div className="eyebrow">PUTU MINING & DEVELOPMENT WORKING GROUP</div>
           <h1>Public Sector Transparency Directory</h1>
           <p>
-            Explore public council monitoring, customary rights documentation, environmental readings, and workforce pipelines across the 14 operational sectors.
+            Explore public council monitoring, customary rights documentation, environmental readings, and workforce pipelines across operational sectors.
           </p>
         </div>
         <Button className="primary" onClick={handleEnterWorkspaceClick}>
@@ -3446,13 +3446,13 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
     <div style={{ background: '#fff', border: '1px solid #dce5e0', borderRadius: '12px', padding: '28px' }}>
       {/* HEADER */}
       <div style={{ marginBottom: '24px', borderBottom: '1px solid #edf2ef', paddingBottom: '18px' }}>
-        <div className="eyebrow">LOCAL PROCUREMENT &amp; 51% ENTERPRISE PREQUALIFICATION</div>
+        <div className="eyebrow">LOCAL PROCUREMENT &amp; ENTERPRISE PREQUALIFICATION</div>
         <h2 style={{ font: '700 24px Georgia', margin: '4px 0 6px', color: '#133e36' }}>
-          Grand Gedeh 51% Business &amp; Local Contractor Registry
+          Grand Gedeh Business &amp; Local Contractor Registry
         </h2>
         <p style={{ fontSize: '14px', color: '#556b62', margin: 0, maxWidth: '880px', lineHeight: '1.6' }}>
           Enforcing Section 13 (Local Procurement Quotas) of the Putu Mineral Development Agreement (MDA).
-          Mining concessionaires and prime contractors are building camp offices, staff quarters, canteens, community schools, and clinics, and require daily catering, aggregate haulage, and site fabrication. GGCDC audits and prequalifies businesses with ≥51% Grand Gedean beneficial ownership to legally defeat &ldquo;no qualified local firm exists&rdquo; excuses and secure contract awards for our people.
+          Mining concessionaires and prime contractors are building camp offices, staff quarters, canteens, community schools, and clinics, and require daily catering, aggregate haulage, and site fabrication. GGCDC audits and prequalifies businesses with Grand Gedean beneficial ownership to legally defeat &ldquo;no qualified local firm exists&rdquo; excuses and secure contract awards for our people.
         </p>
       </div>
 
@@ -3464,7 +3464,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
           onClick={() => { setBusinessView('register'); setBusinessSuccessId(null); }}
           style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}
         >
-          <Building2 size={16} /> Register 51% Local Enterprise / Apply for Prequalification
+          <Building2 size={16} /> Register Local Enterprise / Apply for Prequalification
         </Button>
         <Button
           variant={businessView === 'directory' ? 'default' : 'outline'}
@@ -3472,7 +3472,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
           onClick={() => setBusinessView('directory')}
           style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}
         >
-          <BriefcaseBusiness size={16} /> Certified 51%+ Contractor Directory ({registeredBusinesses.length})
+          <BriefcaseBusiness size={16} /> Certified Local Contractor Directory ({registeredBusinesses.length})
         </Button>
         <Button
           variant={businessView === 'tenders' ? 'default' : 'outline'}
@@ -3494,7 +3494,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                 <CheckCircle2 size={26} color="#1e7e34" />
                 <div>
                   <h3 style={{ margin: 0, color: '#145a32', font: '700 18px Georgia' }}>
-                    51% Grand Gedean Enterprise Registered Successfully!
+                    Grand Gedean Enterprise Registered Successfully!
                   </h3>
                   <div style={{ fontSize: '13px', color: '#276e43' }}>
                     Audited Reference Code: <strong style={{ fontFamily: 'monospace', fontSize: '14px', background: '#d4edda', padding: '2px 6px', borderRadius: '4px' }}>{businessSuccessId}</strong>
@@ -3502,7 +3502,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                 </div>
               </div>
               <p style={{ fontSize: '14px', color: '#2b5138', margin: '0 0 16px', lineHeight: '1.5' }}>
-                Your enterprise has been enrolled in the GGCDC Certified 51%+ Local Contractor Repository. An official Legal Attestation Instrument has been generated for direct submission to the Concessionaire Procurement Directorate and prime EPC contractors.
+                Your enterprise has been enrolled in the GGCDC Certified Local Contractor Repository. An official Legal Attestation Instrument has been generated for direct submission to the Concessionaire Procurement Directorate and prime EPC contractors.
               </p>
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                 <Button
@@ -3513,7 +3513,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                   }}
                   style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
-                  <Printer size={15} /> View Official 51% Endorsement Certificate
+                  <Printer size={15} /> View Official Endorsement Certificate
                 </Button>
                 <Button
                   variant="outline"
@@ -3554,10 +3554,10 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                 </div>
                 <div>
                   <h4 style={{ margin: '0 0 4px', font: '700 16px Georgia', color: '#133e36' }}>
-                    Section 13 Beneficial Ownership Threshold: 51% Minimum Grand Gedean Equity
+                    Section 13 Beneficial Ownership Threshold: Grand Gedean Equity
                   </h4>
                   <p style={{ margin: 0, fontSize: '13px', color: '#445b52', lineHeight: '1.5' }}>
-                    Under the Putu Mineral Development Agreement and Liberian Local Content Guidelines, to qualify for protected county procurement quotas (civil building of offices, canteens, schools, clinics, haulage, catering, security), a business must demonstrate that at least 51% of its voting equity and beneficial control is held by Grand Gedean indigenes.
+                    Under the Putu Mineral Development Agreement and Liberian Local Content Guidelines, to qualify for protected county procurement quotas (civil building of offices, canteens, schools, clinics, haulage, catering, security), a business must demonstrate that its voting equity and beneficial control is held by Grand Gedean indigenes.
                   </p>
                 </div>
               </div>
@@ -3616,8 +3616,8 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                     >
                       <option value="100% Grand Gedean Owned">100% Grand Gedean Owned (Tier 1 Priority)</option>
                       <option value="75% - 99% Grand Gedean Owned">75% - 99% Grand Gedean Owned (Tier 1 Priority)</option>
-                      <option value="51% - 74% Grand Gedean Owned (Statutory Minimum)">51% - 74% Grand Gedean Owned (Statutory Minimum)</option>
-                      <option value="Joint Venture (51% County Partner)">Joint Venture (51% County Partner)</option>
+                      <option value="Grand Gedean Owned (Statutory Preference)">Grand Gedean Owned (Statutory Preference)</option>
+                      <option value="Joint Venture (County Partner)">Joint Venture (County Partner)</option>
                     </select>
                   </div>
 
@@ -3785,7 +3785,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                 {/* UPLOAD PROOF OF 51% BENEFICIAL OWNERSHIP */}
                 <div style={{ background: '#f8faf9', border: '1px solid #dce5e0', borderRadius: '8px', padding: '18px' }}>
                   <label style={{ fontSize: '13px', fontWeight: 700, color: '#133e36', display: 'block', marginBottom: '4px' }}>
-                    Upload Proof of Registration &amp; 51% Ownership (LBR Articles / Stock Ledger / Tax Clearance)
+                    Upload Proof of Registration &amp; Local Ownership (LBR Articles / Stock Ledger / Tax Clearance)
                   </label>
                   <p style={{ fontSize: '12px', color: '#687b73', margin: '0 0 12px' }}>
                     Attach your Liberia Business Registry (LBR) Certificate, Articles of Incorporation specifying Grand Gedean shareholders, or CDA Cooperative Registration.
@@ -3888,7 +3888,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                             onClick={(e) => { e.stopPropagation(); handleUseSampleBusinessProof(); }}
                             style={{ fontSize: '12px', borderColor: '#a3cfbb', color: '#133e36' }}
                           >
-                            ⚡ Use Sample LBR Articles (51% Verified)
+                            ⚡ Use Sample LBR Articles (Verified Local)
                           </Button>
                         </div>
                       </div>
@@ -3907,7 +3907,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                     required
                   />
                   <label htmlFor="businessConsentCheck" style={{ fontSize: '13px', color: '#24362f', cursor: 'pointer', lineHeight: '1.5' }}>
-                    <strong>Mandatory Beneficial Ownership Attestation:</strong> I solemnly declare under penalty of perjury that this enterprise is genuinely owned at least 51% by bona fide citizens of Grand Gedeh County and does not operate as a front or proxy for non-county or foreign third parties. I authorize the Grand Gedeh Citizens Development Council (GGCDC) and the Chamber of Commerce to conduct on-site physical audits of our yard/fleet and submit our profile to Concessionaires and EPC prime contractors for mandatory local procurement award under Section 13 of the Putu Mineral Development Agreement.
+                    <strong>Mandatory Beneficial Ownership Attestation:</strong> I solemnly declare under penalty of perjury that this enterprise is genuinely owned by bona fide citizens of Grand Gedeh County and does not operate as a front or proxy for non-county or foreign third parties. I authorize the Grand Gedeh Citizens Development Council (GGCDC) and the Chamber of Commerce to conduct on-site physical audits of our yard/fleet and submit our profile to Concessionaires and EPC prime contractors for mandatory local procurement award under Section 13 of the Putu Mineral Development Agreement.
                   </label>
                 </div>
 
@@ -3927,7 +3927,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
         </div>
       )}
 
-      {/* VIEW 2: CERTIFIED 51%+ CONTRACTOR DIRECTORY */}
+      {/* VIEW 2: CERTIFIED LOCAL CONTRACTOR DIRECTORY */}
       {businessView === 'directory' && (
         <div>
           {/* STATS TILES */}
@@ -3981,7 +3981,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                 <option value="All">All Ownership Tiers</option>
                 <option value="100%">100% Grand Gedean Owned</option>
                 <option value="75%">75% - 99% Grand Gedean Owned</option>
-                <option value="51%">51% - 74% Statutory Minimum</option>
+                <option value="Preference">Statutory Preference</option>
               </select>
             </div>
           </div>
@@ -4083,7 +4083,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
               </strong>
             </div>
             <p style={{ margin: 0, fontSize: '13px', color: '#5b4010', lineHeight: '1.6' }}>
-              The Putu Mineral Development Agreement mandates that civil construction (camp offices, staff quarters, central canteens, schools, and clinics), local catering, crushed aggregate haulage, and site security packages <strong>must be awarded on a priority first-right basis to registered Grand Gedean contractors with ≥51% local ownership</strong>. GGCDC matches prequalified local firms directly to active tender scopes.
+              The Putu Mineral Development Agreement mandates that civil construction (camp offices, staff quarters, central canteens, schools, and clinics), local catering, crushed aggregate haulage, and site security packages <strong>must be awarded on a priority first-right basis to registered Grand Gedean contractors with verified local ownership</strong>. GGCDC matches prequalified local firms directly to active tender scopes.
             </p>
           </div>
 
@@ -4146,7 +4146,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                       else setBusinessSectorFilter('All');
                     }}
                   >
-                    View Matched 51% Contractors →
+                    View Matched Local Contractors →
                   </Button>
                 </div>
               </div>
@@ -4203,7 +4203,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                   {r.description}
                 </div>
                 <div style={{ fontSize: '11px', color: isSel ? '#135e4b' : '#88a096', fontWeight: 600, marginTop: 'auto' }}>
-                  {r.type === 'admin' ? '✓ Full Access to All 14 Modules' : `✓ ${r.primaryModules.length} Assigned Modules`}
+                  {r.type === 'admin' ? '✓ Full Access to All Working Groups' : `✓ ${r.primaryModules.length} Assigned Modules`}
                 </div>
               </div>
             );
@@ -4295,13 +4295,13 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
               className={`publicNavLink ${publicTab === 'pillars' ? 'activeNavLink' : ''}`}
               onClick={() => setPublicTab('pillars')}
             >
-              12 Stakeholder Pillars
+              Stakeholder Pillars
             </button>
             <button
               className={`publicNavLink ${publicTab === 'putu-group' ? 'activeNavLink' : ''}`}
               onClick={() => { setPublicTab('putu-group'); setActiveModuleId('agreements'); }}
             >
-              Putu Working Groups (14)
+              Putu Working Groups
             </button>
             <button
               className={`publicNavLink ${publicTab === 'grievance' ? 'activeNavLink' : ''}`}
@@ -4319,7 +4319,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
               className={`publicNavLink ${publicTab === 'businesses' ? 'activeNavLink' : ''}`}
               onClick={() => setPublicTab('businesses')}
             >
-              51% Local Businesses
+              Local Businesses
             </button>
           </nav>
 
@@ -4370,11 +4370,11 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
             <button className={`mobileLink ${publicTab === 'home' ? 'chosen' : ''}`} onClick={() => { setPublicTab('home'); setPublicMobileNav(false); }}>Home</button>
             <button className={`mobileLink ${publicTab === 'architecture' ? 'chosen' : ''}`} onClick={() => { setPublicTab('architecture'); setPublicMobileNav(false); }}>Architecture & Model</button>
             <button className={`mobileLink ${publicTab === 'roadmap' ? 'chosen' : ''}`} onClick={() => { setPublicTab('roadmap'); setPublicMobileNav(false); }}>Consultative Roadmap</button>
-            <button className={`mobileLink ${publicTab === 'pillars' ? 'chosen' : ''}`} onClick={() => { setPublicTab('pillars'); setPublicMobileNav(false); }}>12 Stakeholder Pillars</button>
-            <button className={`mobileLink ${publicTab === 'putu-group' ? 'chosen' : ''}`} onClick={() => { setPublicTab('putu-group'); setPublicMobileNav(false); }}>Putu Working Groups (14)</button>
+            <button className={`mobileLink ${publicTab === 'pillars' ? 'chosen' : ''}`} onClick={() => { setPublicTab('pillars'); setPublicMobileNav(false); }}>Stakeholder Pillars</button>
+            <button className={`mobileLink ${publicTab === 'putu-group' ? 'chosen' : ''}`} onClick={() => { setPublicTab('putu-group'); setPublicMobileNav(false); }}>Putu Working Groups</button>
             <button className={`mobileLink ${publicTab === 'grievance' ? 'chosen' : ''}`} onClick={() => { setPublicTab('grievance'); setPublicMobileNav(false); }}>Public Grievance Desk</button>
             <button className={`mobileLink ${publicTab === 'workforce' ? 'chosen' : ''}`} onClick={() => { setPublicTab('workforce'); setPublicMobileNav(false); }}>Workforce Talent Pool</button>
-            <button className={`mobileLink ${publicTab === 'businesses' ? 'chosen' : ''}`} onClick={() => { setPublicTab('businesses'); setPublicMobileNav(false); }}>51% Local Businesses</button>
+            <button className={`mobileLink ${publicTab === 'businesses' ? 'chosen' : ''}`} onClick={() => { setPublicTab('businesses'); setPublicMobileNav(false); }}>Local Businesses</button>
             {isAuthenticated ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
                 <Button className="primary" style={{ width: '100%' }} onClick={() => { handleEnterWorkspaceClick(); setPublicMobileNav(false); }}>
@@ -4465,11 +4465,11 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
 
                     <div className="heroStats">
                       <div>
-                        <strong>12 Pillars</strong>
+                        <strong>Stakeholder Pillars</strong>
                         <span>Founding Representation</span>
                       </div>
                       <div>
-                        <strong>14 Areas</strong>
+                        <strong>Working Groups</strong>
                         <span>Putu Working Groups</span>
                       </div>
                       <div>
@@ -4575,7 +4575,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                     <div style={{ background: '#eef2f9', color: '#1b4f8a', padding: '8px', borderRadius: '8px' }}>
                       <BriefcaseBusiness size={22} />
                     </div>
-                    <strong>14 Putu Mining Work Areas</strong>
+                    <strong>Putu Mining Work Areas</strong>
                   </div>
                   <p>
                     A specialized arm actively tracking MDA clauses, customary boundaries, local hiring quotas, environmental water testing, corridor rail multi-user access, and community development funds.
@@ -4594,7 +4594,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                       Putu Mining & Development Working Group
                     </h2>
                     <p style={{ margin: '4px 0 0', color: '#687d74', fontSize: '14px' }}>
-                      Fourteen interconnected operational areas tracking commitments, safeguards, and citizen benefits.
+                      Interconnected operational areas tracking commitments, safeguards, and citizen benefits.
                     </p>
                   </div>
                   <Button className="primary" onClick={handleEnterWorkspaceClick}>
@@ -4648,7 +4648,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
           {/* TAB 7: WORKFORCE MATCHER */}
           {publicTab === 'workforce' && renderPublicWorkforceContent()}
 
-          {/* TAB 8: 51% LOCAL BUSINESS REGISTRY */}
+          {/* TAB 8: LOCAL BUSINESS REGISTRY */}
           {publicTab === 'businesses' && renderPublicBusinessContent()}
         </div>
 
@@ -4685,7 +4685,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                 <ul>
                   <li><button onClick={() => setPublicTab('grievance')} style={{ background: 'none', border: 'none', color: '#cbdcd4', cursor: 'pointer', padding: 0, textAlign: 'left', font: 'inherit' }}>Confidential Grievance Portal</button></li>
                   <li><button onClick={() => setPublicTab('workforce')} style={{ background: 'none', border: 'none', color: '#cbdcd4', cursor: 'pointer', padding: 0, textAlign: 'left', font: 'inherit' }}>Workforce Talent Matcher</button></li>
-                  <li><button onClick={() => setPublicTab('businesses')} style={{ background: 'none', border: 'none', color: '#cbdcd4', cursor: 'pointer', padding: 0, textAlign: 'left', font: 'inherit' }}>51% Local Contractor Registry</button></li>
+                  <li><button onClick={() => setPublicTab('businesses')} style={{ background: 'none', border: 'none', color: '#cbdcd4', cursor: 'pointer', padding: 0, textAlign: 'left', font: 'inherit' }}>Local Contractor Registry</button></li>
                   <li><button onClick={() => setPublicTab('roadmap')} style={{ background: 'none', border: 'none', color: '#cbdcd4', cursor: 'pointer', padding: 0, textAlign: 'left', font: 'inherit' }}>5-Phase Formation Roadmap</button></li>
                   <li><button onClick={handleEnterWorkspaceClick} style={{ background: 'none', border: 'none', color: '#f3d999', cursor: 'pointer', padding: 0, textAlign: 'left', fontWeight: 'bold', font: 'inherit' }}>Council Member Login →</button></li>
                 </ul>
@@ -4778,7 +4778,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
             onClick={() => { setActiveTab('pillars'); setMobileMenuOpen(false); }}
           >
             <Users size={18} />
-            12 Stakeholder Pillars
+            Stakeholder Pillars
           </button>
 
           {/* Specialized Tools: ONLY for Admin / Secretariat */}
@@ -4795,10 +4795,10 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
           {/* Putu Working Group Assigned Modules (Filtered by Role) */}
           <div style={{ padding: '0 12px', marginTop: '22px', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <p className="sideLabel" style={{ margin: 0, padding: 0 }}>
-              {currentRole.type === 'admin' ? 'PUTU WORKING GROUP (ALL 14)' : `${currentRole.badge.toUpperCase()} WORKING GROUPS`}
+              {currentRole.type === 'admin' ? 'PUTU WORKING GROUPS' : `${currentRole.badge.toUpperCase()} WORKING GROUPS`}
             </p>
             <span style={{ fontSize: '11px', color: '#d5ae59', fontWeight: 'bold' }}>
-              {authorizedModules.length} of 14
+              {authorizedModules.length} Active Modules
             </span>
           </div>
 
@@ -4861,7 +4861,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
               {activeTab === 'putu-group' && `Putu Working Group · ${currentModule.name}`}
               {activeTab === 'architecture' && 'Institutional Architecture & Governance'}
               {activeTab === 'roadmap' && 'Consultative Formation Roadmap'}
-              {activeTab === 'pillars' && '12 Founding Stakeholder Pillars'}
+              {activeTab === 'pillars' && 'Founding Stakeholder Pillars'}
               {activeTab === 'tools' && 'Civic Tools & Verification Engine'}
             </div>
           </div>
@@ -5026,7 +5026,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                 <div>
                   <span>Total Commitments &amp; Records</span>
                   <strong>{records.length}</strong>
-                  <small>Across 14 Putu working groups</small>
+                  <small>Across Putu working groups</small>
                 </div>
                 <div 
                   style={{ cursor: 'pointer', border: pendingVerificationItems.length > 0 ? '1.5px solid #d97706' : undefined }}
@@ -5042,7 +5042,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                   <small style={{ color: '#b45309', fontWeight: 600 }}>Review &amp; certify applications →</small>
                 </div>
                 <div>
-                  <span>51% Local Contractors</span>
+                  <span>Local Contractors</span>
                   <strong>{records.filter(r => r.module === 'suppliers').length}</strong>
                   <small>Vetted beneficial ownership</small>
                 </div>
@@ -5076,7 +5076,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                       transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
                     }}
                   >
-                    <LayoutDashboard size={16} /> 14 Operational Work Areas
+                    <LayoutDashboard size={16} /> Operational Work Areas
                   </button>
 
                   <button
@@ -5163,7 +5163,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                         cursor: 'pointer'
                       }}
                     >
-                      51% Businesses ({pendingVerificationItems.filter(r => r.module === 'suppliers').length})
+                      Local Businesses ({pendingVerificationItems.filter(r => r.module === 'suppliers').length})
                     </button>
                     <button
                       onClick={() => setApprovalsFilter('verified')}
@@ -5235,7 +5235,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                       <strong style={{ color: '#10352f', display: 'block', fontSize: '14px', marginBottom: '4px' }}>
                         Tripartite Vetting &amp; Statutory Certification Protocol
                       </strong>
-                      Worker talent and 51% business applications are audited under Section 11 &amp; Section 13 of the Putu MDA. Approvals require tripartite concurrence: <strong>Council of Paramount Chiefs</strong> (customary residency/indigeneity), <strong>GGAA Technical Advisory / Chamber of Commerce</strong> (credentials &amp; 51% equity audit), and <strong>GGBA Legal Counsel</strong> (statutory compliance).
+                      Worker talent and local business applications are audited under Section 11 &amp; Section 13 of the Putu MDA. Approvals require tripartite concurrence: <strong>Council of Paramount Chiefs</strong> (customary residency/indigeneity), <strong>GGAA Technical Advisory / Chamber of Commerce</strong> (credentials &amp; local equity audit), and <strong>GGBA Legal Counsel</strong> (statutory compliance).
                     </div>
                   </div>
 
@@ -5257,7 +5257,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                             {approvalsFilter === 'verified' ? 'No certified registrations found.' : 'All registrations in this category have been audited!'}
                           </strong>
                           <p style={{ margin: 0, fontSize: '13px' }}>
-                            New public registrations from the Workforce Desk and 51% Contractor Registry will appear here automatically.
+                            New public registrations from the Workforce Desk and Local Contractor Registry will appear here automatically.
                           </p>
                         </div>
                       );
@@ -5299,7 +5299,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                                   background: isWorkforce ? '#e0f2fe' : '#fef3c7',
                                   color: isWorkforce ? '#0369a1' : '#92400e'
                                 }}>
-                                  {isWorkforce ? 'Workforce Talent' : '51% Grand Gedean Business'}
+                                  {isWorkforce ? 'Workforce Talent' : 'Grand Gedean Business'}
                                 </span>
                                 <span style={{ fontSize: '12px', fontFamily: 'monospace', color: '#688075', fontWeight: 700 }}>
                                   {trackingCode}
@@ -5338,7 +5338,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                                 {isWorkforce ? 'Trade & Experience:' : 'Ownership Standing:'}
                               </span>
                               <strong style={{ color: '#133e36' }}>
-                                {isWorkforce ? `${details.occupation || 'Artisan'} (${details.experience || '0'} yrs)` : (details.ownership || '≥51% Grand Gedean Owned')}
+                                {isWorkforce ? `${details.occupation || 'Artisan'} (${details.experience || '0'} yrs)` : (details.ownership || 'Grand Gedean Owned')}
                               </strong>
                             </div>
                             <div>
@@ -5358,7 +5358,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                             </span>
                             <span>•</span>
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}>
-                              <CheckCircle2 size={13} color="#2e7d32" /> {isWorkforce ? 'GGAA Panel: Technical Credentials Verified' : 'Chamber of Commerce: 51% Equity Audited'}
+                              <CheckCircle2 size={13} color="#2e7d32" /> {isWorkforce ? 'GGAA Panel: Technical Credentials Verified' : 'Chamber of Commerce: Local Equity Audited'}
                             </span>
                             <span>•</span>
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}>
@@ -5431,7 +5431,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                                     taxStatus: details.taxStatus || 'Current & Cleared',
                                     capacity: details.capacity || 'Operational fleet on site',
                                     employees: details.employees || 'Local technical team',
-                                    prequalificationStatus: 'Prequalified 51%+ Local Contractor',
+                                    prequalificationStatus: 'Prequalified Local Contractor',
                                     trackingCode
                                   };
                                   setBusinessModalVendor(b);
@@ -5942,7 +5942,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                     <div style={{ border: '1px solid #e1ebe5', borderRadius: '8px', padding: '18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
                         <strong style={{ display: 'block', fontSize: '15px', color: '#17473b' }}>Full JSON Repository Backup</strong>
-                        <small style={{ color: '#778b82' }}>Export complete database including all 14 modules, details, and relational links.</small>
+                        <small style={{ color: '#778b82' }}>Export complete database including all modules, details, and relational links.</small>
                       </div>
                       <Button variant="outline" onClick={handleExportJSON}>
                         <Download size={16} /> Export JSON
