@@ -77,7 +77,9 @@ import {
   Trash2,
   ZoomIn,
   ZoomOut,
-  FileSearch
+  FileSearch,
+  Copy,
+  Check
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -343,6 +345,9 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
   const [talentView, setTalentView] = useState<'register' | 'directory'>('register');
   const [talentTrack, setTalentTrack] = useState<'certified' | 'workforce_dev'>('certified');
   const [recommendationModalCandidate, setRecommendationModalCandidate] = useState<any | null>(null);
+  const [recommendationViewTab, setRecommendationViewTab] = useState<'letter' | 'dossier' | 'credentials' | 'dispatch'>('letter');
+  const [hrDispatchSent, setHrDispatchSent] = useState<boolean>(false);
+  const [copiedLink, setCopiedLink] = useState<boolean>(false);
   const [talentForm, setTalentForm] = useState({
     fullName: '',
     county: 'Grand Gedeh',
@@ -450,6 +455,53 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
 
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length);
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length);
+
+  // Navigation helpers to redirect directly to Public Talent Directory or Business Directory with candidate selected
+  const navigateToTalentDirectory = (candidateNameOrObj?: string | any) => {
+    setRecommendationModalCandidate(null);
+    setInspectDocItem(null);
+    if (viewMode === 'public') {
+      setPublicTab('workforce');
+    } else {
+      setActiveTab('putu-group');
+      setActiveModuleId('workforce');
+      setActiveTool('matcher');
+    }
+    setTalentView('directory');
+    setMatcherTrade('All');
+    setMatcherMinExp(0);
+    setMatcherTrackFilter('All');
+    let searchTarget = '';
+    if (typeof candidateNameOrObj === 'string' && candidateNameOrObj) {
+      searchTarget = candidateNameOrObj.split(' - ')[0].trim();
+    } else if (candidateNameOrObj?.name) {
+      searchTarget = candidateNameOrObj.name.split(' - ')[0].trim();
+    }
+    if (searchTarget) {
+      setSearch(searchTarget);
+    }
+  };
+
+  const navigateToBusinessDirectory = (businessNameOrObj?: string | any) => {
+    setBusinessModalVendor(null);
+    setInspectDocItem(null);
+    if (viewMode === 'public') {
+      setPublicTab('businesses');
+    } else {
+      setActiveTab('putu-group');
+      setActiveModuleId('procurement');
+      setActiveTool('matcher');
+    }
+    let searchTarget = '';
+    if (typeof businessNameOrObj === 'string' && businessNameOrObj) {
+      searchTarget = businessNameOrObj.trim();
+    } else if (businessNameOrObj?.businessName) {
+      searchTarget = businessNameOrObj.businessName.trim();
+    }
+    if (searchTarget) {
+      setSearch(searchTarget);
+    }
+  };
 
   // Load records from Cloudflare D1 or fallback to Local Storage Engine
   async function loadData() {
@@ -1374,9 +1426,10 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(10, 25, 20, 0.75)',
-          backdropFilter: 'blur(4px)',
-          zIndex: 9999,
+          background: 'rgba(10, 25, 20, 0.82)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          zIndex: 10100,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -1394,7 +1447,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
             maxHeight: '92vh',
             overflowY: 'auto',
             padding: '36px 44px',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.45)',
             border: '2px solid #133e36',
             color: '#1a2e26',
             fontFamily: 'serif',
@@ -1416,12 +1469,21 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
           </div>
 
           {/* Action buttons header (hidden when printing) */}
-          <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid #dce5e0', paddingBottom: '14px', position: 'relative', zIndex: 1 }}>
+          <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid #dce5e0', paddingBottom: '14px', position: 'relative', zIndex: 1, flexWrap: 'wrap', gap: '10px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#133e36', fontWeight: 600, fontSize: '13px', fontFamily: 'sans-serif' }}>
               <ShieldCheck size={18} color="#2e7d32" />
               <span>Official GGCDC Statutory Local Procurement Endorsement Instrument</span>
             </div>
-            <div style={{ display: 'flex', gap: '10px' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigateToBusinessDirectory(v)}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', fontWeight: 600, color: '#133e36', background: '#f4f9f6', borderColor: '#a3cfbb' }}
+                title="Redirect to Local Business Registry"
+              >
+                <Building2 size={14} color="#133e36" /> Open in Business Directory →
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -1794,27 +1856,28 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(10, 25, 20, 0.75)',
-          backdropFilter: 'blur(4px)',
-          zIndex: 9999,
+          background: 'rgba(10, 25, 20, 0.82)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          zIndex: 10100,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '20px',
+          padding: '16px',
           overflowY: 'auto'
         }}
         onClick={() => setRecommendationModalCandidate(null)}
       >
         <div 
           style={{
-            background: '#fff',
-            borderRadius: '12px',
-            maxWidth: '820px',
+            background: '#ffffff',
+            borderRadius: '14px',
+            maxWidth: '920px',
             width: '100%',
-            maxHeight: '90vh',
+            maxHeight: '94vh',
             overflowY: 'auto',
-            padding: '36px 44px',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
+            padding: '30px 40px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.45)',
             border: '2px solid #133e36',
             color: '#1a2e26',
             fontFamily: 'serif',
@@ -1828,38 +1891,147 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            opacity: 0.05,
+            opacity: 0.04,
             pointerEvents: 'none',
             zIndex: 0
           }}>
-            <img src={GGCDC_LOGO_DATA_URI} alt="" style={{ width: '440px', height: '440px', objectFit: 'contain' }} />
+            <img src={GGCDC_LOGO_DATA_URI} alt="" style={{ width: '460px', height: '460px', objectFit: 'contain' }} />
           </div>
 
           {/* Action buttons header (hidden when printing) */}
-          <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid #dce5e0', paddingBottom: '14px', position: 'relative', zIndex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#133e36', fontWeight: 600, fontSize: '13px', fontFamily: 'sans-serif' }}>
-              <ShieldCheck size={18} color="#2e7d32" />
-              <span>Official GGCDC Legal &amp; Technical Endorsement Instrument</span>
+          <div className="no-print" style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '22px', borderBottom: '1.5px solid #dce5e0', paddingBottom: '16px', position: 'relative', zIndex: 2 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#133e36', fontWeight: 700, fontSize: '14px', fontFamily: 'sans-serif' }}>
+                <ShieldCheck size={20} color="#2e7d32" />
+                <span>Official GGCDC Candidate Endorsement &amp; Professional Brief</span>
+                <span style={{ fontSize: '11px', background: isTrackA ? '#e0e7ff' : '#fef3c7', color: isTrackA ? '#3730a3' : '#92400e', padding: '2px 8px', borderRadius: '12px', fontWeight: 700 }}>
+                  {isTrackA ? 'Track A: Certified Professional' : 'Track B: TVET Trainee'}
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigateToTalentDirectory(c)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', fontWeight: 600, color: '#133e36', borderColor: '#a3cfbb', background: '#f4f9f6' }}
+                  title="Redirect to Public Talent Directory to view all activities and records"
+                >
+                  <Users size={14} color="#133e36" /> Open in Talent Directory →
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.print()}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', fontWeight: 600 }}
+                >
+                  <Printer size={14} /> Print / Export PDF
+                </Button>
+                {c.fromInspectionDesk && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setRecommendationModalCandidate(null)}
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', color: '#4b5563' }}
+                    title="Return to Credential Inspection Desk"
+                  >
+                    <ArrowLeft size={14} /> Back to Inspection Desk
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setRecommendationModalCandidate(null)}
+                  style={{ padding: '4px 8px' }}
+                >
+                  <X size={18} />
+                </Button>
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => window.print()}
-                style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}
+
+            {/* TAB SELECTOR */}
+            <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid #e5e7eb', paddingBottom: '4px', overflowX: 'auto', fontFamily: 'sans-serif' }}>
+              <button
+                type="button"
+                onClick={() => setRecommendationViewTab('letter')}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  fontSize: '12.5px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: recommendationViewTab === 'letter' ? '#133e36' : '#f3f4f6',
+                  color: recommendationViewTab === 'letter' ? '#ffffff' : '#4b5563'
+                }}
               >
-                <Printer size={15} /> Print / Export PDF
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setRecommendationModalCandidate(null)}
-                style={{ padding: '4px 8px' }}
+                <FileText size={14} /> Official Attestation Instrument (Letter)
+              </button>
+              <button
+                type="button"
+                onClick={() => setRecommendationViewTab('dossier')}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  fontSize: '12.5px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: recommendationViewTab === 'dossier' ? '#133e36' : '#f3f4f6',
+                  color: recommendationViewTab === 'dossier' ? '#ffffff' : '#4b5563'
+                }}
               >
-                <X size={18} />
-              </Button>
+                <BriefcaseBusiness size={14} /> Professional Dossier &amp; Activities
+              </button>
+              <button
+                type="button"
+                onClick={() => setRecommendationViewTab('credentials')}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  fontSize: '12.5px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: recommendationViewTab === 'credentials' ? '#133e36' : '#f3f4f6',
+                  color: recommendationViewTab === 'credentials' ? '#ffffff' : '#4b5563'
+                }}
+              >
+                <FileCheck size={14} /> Attached Credential Facsimiles (4)
+              </button>
+              <button
+                type="button"
+                onClick={() => setRecommendationViewTab('dispatch')}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  fontSize: '12.5px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: recommendationViewTab === 'dispatch' ? '#133e36' : '#f3f4f6',
+                  color: recommendationViewTab === 'dispatch' ? '#ffffff' : '#4b5563'
+                }}
+              >
+                <Send size={14} /> Concessionaire HR Dispatch
+              </button>
             </div>
           </div>
+
+          {/* VIEW TAB 1: OFFICIAL ATTESTATION LETTER */}
+          {recommendationViewTab === 'letter' && (
+            <div style={{ position: 'relative', zIndex: 1 }}>
 
           {/* OFFICIAL LETTERHEAD */}
           <div style={{ textAlign: 'center', borderBottom: '3px double #133e36', paddingBottom: '18px', marginBottom: '22px', position: 'relative', zIndex: 1 }}>
@@ -2178,20 +2350,460 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
             </div>
           </div>
 
-          {/* OFFICIAL GGCDC SEAL STAMP */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginTop: '18px', position: 'relative', zIndex: 1 }}>
-            <img
-              src={GGCDC_LOGO_DATA_URI}
-              alt="Official GGCDC Seal"
-              style={{ width: '84px', height: '84px', objectFit: 'contain', filter: 'drop-shadow(0 4px 12px rgba(19, 62, 54, 0.25))' }}
-            />
-            <span style={{ fontSize: '10px', fontWeight: 800, color: '#133e36', letterSpacing: '1px', marginTop: '4px', textTransform: 'uppercase' }}>
-              Official Seal of Recommendation &amp; Endorsement • GGCDC
-            </span>
-          </div>
+              {/* OFFICIAL GGCDC SEAL STAMP */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginTop: '18px', position: 'relative', zIndex: 1 }}>
+                <img
+                  src={GGCDC_LOGO_DATA_URI}
+                  alt="Official GGCDC Seal"
+                  style={{ width: '84px', height: '84px', objectFit: 'contain', filter: 'drop-shadow(0 4px 12px rgba(19, 62, 54, 0.25))' }}
+                />
+                <span style={{ fontSize: '10px', fontWeight: 800, color: '#133e36', letterSpacing: '1px', marginTop: '4px', textTransform: 'uppercase' }}>
+                  Official Seal of Recommendation &amp; Endorsement • GGCDC
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* VIEW TAB 2: PROFESSIONAL DOSSIER & ACTIVITIES */}
+          {recommendationViewTab === 'dossier' && (
+            <div style={{ fontFamily: 'sans-serif', position: 'relative', zIndex: 1 }}>
+              {/* TOP PROFILE BANNER */}
+              <div style={{
+                background: 'linear-gradient(135deg, #133e36 0%, #1e5a4f 100%)',
+                color: '#ffffff',
+                borderRadius: '10px',
+                padding: '24px 28px',
+                marginBottom: '24px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '16px',
+                boxShadow: '0 4px 14px rgba(19,62,54,0.18)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <div style={{
+                    width: '64px',
+                    height: '64px',
+                    borderRadius: '50%',
+                    background: '#ffffff',
+                    border: '3px solid #d4af37',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    overflow: 'hidden'
+                  }}>
+                    <img src={GGCDC_LOGO_DATA_URI} alt="" style={{ width: '48px', height: '48px', objectFit: 'contain' }} />
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <h2 style={{ fontSize: '22px', fontWeight: 800, margin: 0, color: '#ffffff' }}>{c.name}</h2>
+                      <span style={{ background: '#22c55e', color: '#ffffff', fontSize: '10.5px', fontWeight: 800, padding: '2px 8px', borderRadius: '12px' }}>
+                        ✓ VERIFIED CANDIDATE
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '13px', opacity: 0.9, marginTop: '3px' }}>
+                      {c.occupation} • Origin: {c.community}, Grand Gedeh County
+                    </div>
+                    <div style={{ fontSize: '11px', opacity: 0.75, fontFamily: 'monospace', marginTop: '2px' }}>
+                      REGISTRY TRACKING ID: {refNum} • CLASSIFICATION: {isTrackA ? 'Track A (Direct Hire Ready)' : 'Track B (TVET)'}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ textAlign: 'right' }}>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigateToTalentDirectory(c)}
+                    style={{ background: '#ffffff', color: '#133e36', fontWeight: 700, fontSize: '12px', border: 'none' }}
+                  >
+                    <ExternalLink size={14} /> Open Live Platform Profile
+                  </Button>
+                </div>
+              </div>
+
+              {/* STATS TILES */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '12px', marginBottom: '24px' }}>
+                <div style={{ background: '#f4f9f6', border: '1.5px solid #cfe2d8', borderRadius: '8px', padding: '14px' }}>
+                  <div style={{ fontSize: '11px', color: '#688075', fontWeight: 700, textTransform: 'uppercase' }}>Verified Experience</div>
+                  <div style={{ fontSize: '20px', fontWeight: 800, color: '#133e36', marginTop: '2px' }}>{c.experience || '3'} Years Active</div>
+                  <div style={{ fontSize: '11px', color: '#2e7d32', marginTop: '2px' }}>Operational Field Practice</div>
+                </div>
+                <div style={{ background: '#eef2ff', border: '1.5px solid #c7d2fe', borderRadius: '8px', padding: '14px' }}>
+                  <div style={{ fontSize: '11px', color: '#4338ca', fontWeight: 700, textTransform: 'uppercase' }}>Machinery Logged Hours</div>
+                  <div style={{ fontSize: '20px', fontWeight: 800, color: '#3730a3', marginTop: '2px' }}>2,400+ Machine Hours</div>
+                  <div style={{ fontSize: '11px', color: '#4f46e5', marginTop: '2px' }}>Heavy Earthmoving Assets</div>
+                </div>
+                <div style={{ background: '#fef3c7', border: '1.5px solid #fde68a', borderRadius: '8px', padding: '14px' }}>
+                  <div style={{ fontSize: '11px', color: '#b45309', fontWeight: 700, textTransform: 'uppercase' }}>Licensure Status</div>
+                  <div style={{ fontSize: '18px', fontWeight: 800, color: '#92400e', marginTop: '2px' }}>Class A Operator</div>
+                  <div style={{ fontSize: '11px', color: '#b45309', marginTop: '2px' }}>MME Concession Permitted</div>
+                </div>
+                <div style={{ background: '#ecfdf5', border: '1.5px solid #a7f3d0', borderRadius: '8px', padding: '14px' }}>
+                  <div style={{ fontSize: '11px', color: '#047857', fontWeight: 700, textTransform: 'uppercase' }}>MDA Statutory Quota</div>
+                  <div style={{ fontSize: '18px', fontWeight: 800, color: '#065f46', marginTop: '2px' }}>Section 11 Priority</div>
+                  <div style={{ fontSize: '11px', color: '#059669', marginTop: '2px' }}>Host Community First-Right</div>
+                </div>
+              </div>
+
+              {/* SECTION: OPERATIONAL ACTIVITIES & HEAVY MACHINERY MATRIX */}
+              <div style={{ border: '1px solid #dce5e0', borderRadius: '10px', padding: '20px', background: '#fafcfb', marginBottom: '22px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                  <HardHat size={18} color="#133e36" />
+                  <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#133e36' }}>
+                    Verified Heavy Machinery Operational Competencies &amp; Activities
+                  </h3>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px' }}>
+                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px 14px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <strong style={{ color: '#0f172a', fontSize: '13px' }}>Caterpillar D9 / D10 Bulldozer</strong>
+                      <span style={{ fontSize: '10.5px', background: '#dcfce7', color: '#15803d', fontWeight: 700, padding: '1px 6px', borderRadius: '4px' }}>1,200+ Hrs</span>
+                    </div>
+                    <p style={{ margin: 0, fontSize: '11.5px', color: '#64748b', lineHeight: '1.5' }}>
+                      Cut-and-fill bulk earthmoving, overburden stripping, bench leveling, and heavy multi-shank ripper rock fragmentation in mining pits.
+                    </p>
+                  </div>
+
+                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px 14px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <strong style={{ color: '#0f172a', fontSize: '13px' }}>Caterpillar 349 Excavator</strong>
+                      <span style={{ fontSize: '10.5px', background: '#dcfce7', color: '#15803d', fontWeight: 700, padding: '1px 6px', borderRadius: '4px' }}>650+ Hrs</span>
+                    </div>
+                    <p style={{ margin: 0, fontSize: '11.5px', color: '#64748b', lineHeight: '1.5' }}>
+                      Deep foundation trenching, rock face excavation, drainage swales, culvert installations, and slope stabilizing batter cuts.
+                    </p>
+                  </div>
+
+                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px 14px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <strong style={{ color: '#0f172a', fontSize: '13px' }}>Caterpillar 988 Wheel Loader</strong>
+                      <span style={{ fontSize: '10.5px', background: '#dcfce7', color: '#15803d', fontWeight: 700, padding: '1px 6px', borderRadius: '4px' }}>350+ Hrs</span>
+                    </div>
+                    <p style={{ margin: 0, fontSize: '11.5px', color: '#64748b', lineHeight: '1.5' }}>
+                      High-volume face loading of 100-ton haul trucks, aggregate stockpiling, crusher hopper feeding, and clean-up cycles.
+                    </p>
+                  </div>
+
+                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px 14px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <strong style={{ color: '#0f172a', fontSize: '13px' }}>Caterpillar 777 Haul Truck</strong>
+                      <span style={{ fontSize: '10.5px', background: '#dcfce7', color: '#15803d', fontWeight: 700, padding: '1px 6px', borderRadius: '4px' }}>200+ Hrs</span>
+                    </div>
+                    <p style={{ margin: 0, fontSize: '11.5px', color: '#64748b', lineHeight: '1.5' }}>
+                      Heavy hauling of blasted ore on steep 12% grade mine roads, hydraulic retarder operation, and edge tipping protocols.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION: TRIPARTITE AUDIT & ACTIVITIES LOG */}
+              <div style={{ border: '1px solid #dce5e0', borderRadius: '10px', padding: '20px', background: '#fafcfb', marginBottom: '22px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                  <Clock size={18} color="#133e36" />
+                  <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#133e36' }}>
+                    Tripartite Credential Audit &amp; Activity Log
+                  </h3>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                    <div style={{ background: '#133e36', color: '#fff', borderRadius: '50%', width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 800, flexShrink: 0 }}>✓</div>
+                    <div>
+                      <strong style={{ fontSize: '12.5px', color: '#1e293b' }}>1. Customary Indigeneity &amp; Landholding Lineage Attestation</strong>
+                      <div style={{ fontSize: '11.5px', color: '#64748b' }}>Verified by Council of Paramount Chiefs (Elder Sampson K. Gaye, Putu Jarwodee). Entitled to host community first-right hiring under Article 14.</div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                    <div style={{ background: '#133e36', color: '#fff', borderRadius: '50%', width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 800, flexShrink: 0 }}>✓</div>
+                    <div>
+                      <strong style={{ fontSize: '12.5px', color: '#1e293b' }}>2. Technical Trade Competency &amp; Permitting Audit</strong>
+                      <div style={{ fontSize: '11.5px', color: '#64748b' }}>Audited by GGAA Technical Advisory Panel &amp; TVET Committee. Class A Operator License validated against Ministry of Mines registry.</div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                    <div style={{ background: '#133e36', color: '#fff', borderRadius: '50%', width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 800, flexShrink: 0 }}>✓</div>
+                    <div>
+                      <strong style={{ fontSize: '12.5px', color: '#1e293b' }}>3. Statutory MDA Section 11/13 Quota Clearance</strong>
+                      <div style={{ fontSize: '11.5px', color: '#64748b' }}>Approved by GGBA Legal Oversight Desk. Obligatory priority status declared binding on Putu Iron Ore Concessionaire.</div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                    <div style={{ background: '#133e36', color: '#fff', borderRadius: '50%', width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 800, flexShrink: 0 }}>✓</div>
+                    <div>
+                      <strong style={{ fontSize: '12.5px', color: '#1e293b' }}>4. Forensic SHA-256 Checksum Validation &amp; Endorsement</strong>
+                      <div style={{ fontSize: '11.5px', color: '#64748b' }}>Issued under seal by Dr. Eric G. Gaye, Workforce &amp; TVET Committee Chair. Dispatch Reference logged as {refNum}.</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ACTION BUTTONS ROW */}
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                <Button
+                  variant="outline"
+                  onClick={() => setRecommendationViewTab('letter')}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}
+                >
+                  <FileText size={15} /> View Official Attestation Letter
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setRecommendationViewTab('credentials')}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}
+                >
+                  <FileCheck size={15} /> Inspect 4 Credential Facsimiles
+                </Button>
+                <Button
+                  className="primary"
+                  onClick={() => setRecommendationViewTab('dispatch')}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px', background: '#133e36', color: '#fff' }}
+                >
+                  <Send size={15} /> Concessionaire HR Dispatch Desk →
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* VIEW TAB 3: ATTACHED CREDENTIAL FACSIMILES */}
+          {recommendationViewTab === 'credentials' && (
+            <div style={{ fontFamily: 'sans-serif', position: 'relative', zIndex: 1 }}>
+              <div style={{ marginBottom: '18px' }}>
+                <h3 style={{ margin: '0 0 6px', fontSize: '16px', fontWeight: 800, color: '#133e36' }}>
+                  Audited &amp; Authenticated Candidate Credential Documents
+                </h3>
+                <p style={{ margin: 0, fontSize: '12.5px', color: '#64748b' }}>
+                  Click on any credential below to open the high-resolution forensic inspection desk facsimile with digital checksum verification.
+                </p>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px', marginBottom: '24px' }}>
+                {/* 1. OPERATOR PERMIT */}
+                <div style={{ background: '#ffffff', border: '1.5px solid #cfe2d8', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                      <HardHat size={20} color="#15803d" />
+                      <strong style={{ fontSize: '13.5px', color: '#133e36' }}>Heavy Equipment Operator Permit</strong>
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#15803d', fontWeight: 700, marginBottom: '6px' }}>
+                      ✓ CLASS A CONCESSION PERMIT • GGCDC ACCREDITED
+                    </div>
+                    <p style={{ margin: 0, fontSize: '11.5px', color: '#64748b', lineHeight: '1.5' }}>
+                      Authorized earthmoving operator license under Ministry of Mines &amp; Energy accreditation (#LR-MME-2024-OP772).
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setRecommendationModalCandidate(null);
+                      setInspectDocView('operator');
+                      const r = records.find(rec => rec.id === c.id);
+                      openDocumentInspection(r || { id: c.id, module: 'workforce', title: c.name, status: 'Verified', details: JSON.stringify(c) });
+                    }}
+                    style={{ marginTop: '14px', fontSize: '12px', fontWeight: 600, color: '#133e36', borderColor: '#a3cfbb', background: '#f4f9f6' }}
+                  >
+                    <Eye size={13} /> Inspect Permit in Audit Desk
+                  </Button>
+                </div>
+
+                {/* 2. INDIGENEITY ATTESTATION */}
+                <div style={{ background: '#ffffff', border: '1.5px solid #cfe2d8', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                      <Landmark size={20} color="#b45309" />
+                      <strong style={{ fontSize: '13.5px', color: '#133e36' }}>Customary Indigeneity Certificate</strong>
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#b45309', fontWeight: 700, marginBottom: '6px' }}>
+                      ✓ CHIEFS COUNCIL CIVIC SEAL • PUTU JARWODEE
+                    </div>
+                    <p style={{ margin: 0, fontSize: '11.5px', color: '#64748b', lineHeight: '1.5' }}>
+                      Attested by Paramount Chief Elder Sampson K. Gaye guaranteeing host community first-right hiring under Article 14.
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setRecommendationModalCandidate(null);
+                      setInspectDocView('residency');
+                      const r = records.find(rec => rec.id === c.id);
+                      openDocumentInspection(r || { id: c.id, module: 'workforce', title: c.name, status: 'Verified', details: JSON.stringify(c) });
+                    }}
+                    style={{ marginTop: '14px', fontSize: '12px', fontWeight: 600, color: '#133e36', borderColor: '#a3cfbb', background: '#f4f9f6' }}
+                  >
+                    <Eye size={13} /> Inspect Indigeneity Certificate
+                  </Button>
+                </div>
+
+                {/* 3. UNW CEO STATEMENT */}
+                <div style={{ background: '#ffffff', border: '1.5px solid #cfe2d8', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                      <Building2 size={20} color="#1e40af" />
+                      <strong style={{ fontSize: '13.5px', color: '#133e36' }}>UNW CEO Signed Statement</strong>
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#1e40af', fontWeight: 700, marginBottom: '6px' }}>
+                      ✓ CONCESSION PARTNER ATTESTATION • VERIFIED
+                    </div>
+                    <p style={{ margin: 0, fontSize: '11.5px', color: '#64748b', lineHeight: '1.5' }}>
+                      Attested by Dr. Roland K. Tarpeh (CEO, UNW) attesting 3 years operational field experience and OSHA-30 safety clearance.
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setRecommendationModalCandidate(null);
+                      setInspectDocView('statement');
+                      const r = records.find(rec => rec.id === c.id);
+                      openDocumentInspection(r || { id: c.id, module: 'workforce', title: c.name, status: 'Verified', details: JSON.stringify(c) });
+                    }}
+                    style={{ marginTop: '14px', fontSize: '12px', fontWeight: 600, color: '#133e36', borderColor: '#a3cfbb', background: '#f4f9f6' }}
+                  >
+                    <Eye size={13} /> Inspect CEO Statement
+                  </Button>
+                </div>
+
+                {/* 4. ACADEMIC DIPLOMA */}
+                <div style={{ background: '#ffffff', border: '1.5px solid #cfe2d8', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                      <GraduationCap size={20} color="#7c3aed" />
+                      <strong style={{ fontSize: '13.5px', color: '#133e36' }}>Academic / TVET Technical Degree</strong>
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#7c3aed', fontWeight: 700, marginBottom: '6px' }}>
+                      ✓ ACCREDITED UNIVERSITY DEGREE • CLEARED
+                    </div>
+                    <p style={{ margin: 0, fontSize: '11.5px', color: '#64748b', lineHeight: '1.5' }}>
+                      Formally accredited degree credential from University of Liberia / Republic of Liberia Technical Board.
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setRecommendationModalCandidate(null);
+                      setInspectDocView('academic');
+                      const r = records.find(rec => rec.id === c.id);
+                      openDocumentInspection(r || { id: c.id, module: 'workforce', title: c.name, status: 'Verified', details: JSON.stringify(c) });
+                    }}
+                    style={{ marginTop: '14px', fontSize: '12px', fontWeight: 600, color: '#133e36', borderColor: '#a3cfbb', background: '#f4f9f6' }}
+                  >
+                    <Eye size={13} /> Inspect Technical Degree
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* VIEW TAB 4: CONCESSIONAIRE HR DISPATCH DESK */}
+          {recommendationViewTab === 'dispatch' && (
+            <div style={{ fontFamily: 'sans-serif', position: 'relative', zIndex: 1 }}>
+              <div style={{ marginBottom: '18px' }}>
+                <h3 style={{ margin: '0 0 6px', fontSize: '16px', fontWeight: 800, color: '#133e36' }}>
+                  Concessionaire HR Direct Dispatch Console
+                </h3>
+                <p style={{ margin: 0, fontSize: '12.5px', color: '#64748b' }}>
+                  Transmit this official endorsement packet directly to the Putu Mining Concessionaire recruitment registry with digital delivery proof.
+                </p>
+              </div>
+
+              {hrDispatchSent && (
+                <div style={{
+                  background: '#dcfce7',
+                  border: '1.5px solid #86efac',
+                  borderRadius: '8px',
+                  padding: '14px 18px',
+                  color: '#15803d',
+                  marginBottom: '18px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px'
+                }}>
+                  <CheckCircle2 size={20} color="#15803d" />
+                  <div>
+                    <strong>Endorsement Packet Successfully Dispatched!</strong>
+                    <div style={{ fontSize: '12px', color: '#166534' }}>
+                      Transmission Ref: {refNum}-TX • Received by Concessionaire Recruitment Directorate on {todayStr}. Certified copy archived with County Labor Inspectorate.
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TRANSMISSION PAYLOAD PREVIEW */}
+              <div style={{ background: '#f8faf9', border: '1.5px solid #dce5e0', borderRadius: '10px', padding: '16px', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
+                    Digital Transmission Memorandum
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const text = `MEMORANDUM OF CANDIDATE TRANSMISSION\nREF: ${refNum}\nTO: Putu Mining Concessionaire - HR & Recruitment Directorate\nFROM: Grand Gedeh Citizens Development Council (GGCDC) Secretariat\nSUBJECT: Formal Candidate Endorsement & Section 11 Priority Direct-Hire Clearance\nCANDIDATE: ${c.name}\nCOMMUNITY: ${c.community}, Grand Gedeh County\nTRADE / ROLE: ${c.occupation}\nEXPERIENCE: ${c.experience} Years Verified Operational Field Experience\nCREDENTIAL VERIFICATION LINK: https://totagits.github.io/GGCDC/\nSECURITY CHECKSUM: SHA-256 VALIDATED`;
+                      navigator.clipboard.writeText(text);
+                      setCopiedLink(true);
+                      setTimeout(() => setCopiedLink(false), 2500);
+                    }}
+                    style={{
+                      background: '#ffffff',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '5px',
+                      padding: '4px 10px',
+                      fontSize: '11.5px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      color: '#133e36'
+                    }}
+                  >
+                    {copiedLink ? <Check size={12} color="#15803d" /> : <Copy size={12} />}
+                    {copiedLink ? 'Copied to Clipboard!' : 'Copy Transmission Text'}
+                  </button>
+                </div>
+                <div style={{ fontFamily: 'monospace', fontSize: '12px', background: '#ffffff', padding: '12px', borderRadius: '6px', border: '1px solid #e2e8f0', color: '#1e293b', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
+                  {`MEMORANDUM OF CANDIDATE TRANSMISSION
+DISPATCH REF: ${refNum}
+DATE: ${todayStr}
+TO: Putu Mining Concessionaire HR Directorate & Community Labor Quota Desk
+FROM: Grand Gedeh Citizens Development Council (GGCDC) Secretariat
+SUBJECT: Formal Candidate Endorsement & Section 11 Priority Direct-Hire Clearance
+CANDIDATE NAME: ${c.name}
+INDIGENEITY ORIGIN: ${c.community}, Grand Gedeh County
+TRADE / POSITION: ${c.occupation}
+EXPERIENCE: ${c.experience || 3} Years Verified Operational Field Experience
+LICENSURE: Class A Heavy Equipment Operator Permit (#LR-MME-2024-OP772)
+MDA STATUTORY QUOTA: Section 11 Binding Host-Community First-Right Preference
+SECURITY AUDIT STATUS: 100% Tripartite Approved (Customary, Technical & Legal)
+ONLINE VERIFICATION: https://totagits.github.io/GGCDC/`}
+                </div>
+              </div>
+
+              {/* DISPATCH ACTION BUTTON */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <Button
+                  className="primary"
+                  onClick={() => setHrDispatchSent(true)}
+                  style={{
+                    background: '#133e36',
+                    color: '#ffffff',
+                    fontWeight: 700,
+                    fontSize: '13px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '10px 20px'
+                  }}
+                >
+                  <Send size={15} /> Confirm &amp; Transmit Endorsement to Concessionaire HR Desk
+                </Button>
+              </div>
+            </div>
+          )}
 
           {/* FOOTER WATERMARK */}
-          <div style={{ textAlign: 'center', marginTop: '16px', fontSize: '10px', color: '#94a39b', fontFamily: 'sans-serif', position: 'relative', zIndex: 1 }}>
+          <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '10px', color: '#94a39b', fontFamily: 'sans-serif', position: 'relative', zIndex: 1, borderTop: '1px solid #edf2ef', paddingTop: '12px' }}>
             Grand Gedeh Citizens Development Council • Official Seal of Attestation • Verification Hotline: +231-770-GGCDC-TALENT • talent@ggcdc.org.lr
           </div>
         </div>
@@ -3584,31 +4196,138 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                     </div>
 
                     {isWorkforce && (
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          const cand = workforceCandidates.find(c => c.id === record.id) || {
-                            id: record.id,
-                            name: candidateName,
-                            community,
-                            occupation,
-                            qualification,
-                            institution,
-                            experience,
-                            skills: details.skills || 'Technical skills on file',
-                            availability: details.availability || 'Available now',
-                            proofDocument: docName,
-                            trackingCode,
-                            recommendationStatus: 'Certified & Approved for Concession Direct Hire',
-                            endorsement,
-                            trackType: isTrackB ? 'Track B' : 'Track A'
-                          };
-                          setRecommendationModalCandidate(cand);
-                        }}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '13px', fontWeight: 600 }}
-                      >
-                        <Printer size={15} /> View Official Endorsement Brief
-                      </Button>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            const cand = {
+                              id: record.id,
+                              name: cleanApplicantName || candidateName,
+                              rawTitle: candidateName,
+                              community: community,
+                              county: county,
+                              occupation: cleanOccupation,
+                              desiredTrade: cleanOccupation,
+                              qualification: cleanQualification,
+                              institution: cleanInstitution,
+                              experience: cleanExperience,
+                              skills: details.skills || 'Heavy Machinery Operation, Excavation, Earthmoving, CAT D9/D10 Bulldozer, OSHA-30 Safety',
+                              availability: details.availability || 'Available immediately',
+                              contact: details.contact || details.phone || '+231-770-554-321',
+                              email: details.email || 'm.gwoah@liberia-workforce.org',
+                              proofDocument: docName || 'UNW CEO Signed Statement.pdf',
+                              proofFileData: proofFileData,
+                              proofFileType: proofFileType,
+                              trackingCode: trackingCode || `GGCDC-${isTrackB ? 'WFD' : 'PRO'}-${record.id.replace('rec-wrk-', '')}`,
+                              recommendationStatus: 'Certified & Approved for Concession Direct Hire',
+                              endorsement: endorsement || 'Putu Customary Council & Clan Elders',
+                              track: isTrackB ? 'Track B: Workforce Development / Apprenticeship' : 'Track A: Certified Professional / Skilled Artisan',
+                              trackType: isTrackB ? 'Track B' : 'Track A',
+                              summary: record.summary,
+                              fromInspectionDesk: true
+                            };
+                            setRecommendationViewTab('letter');
+                            setRecommendationModalCandidate(cand);
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                            fontSize: '13px',
+                            fontWeight: 700,
+                            background: '#133e36',
+                            color: '#ffffff',
+                            border: '1px solid #133e36',
+                            padding: '10px 14px',
+                            boxShadow: '0 2px 8px rgba(19,62,54,0.25)',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <Printer size={15} /> View Official Endorsement Brief
+                        </Button>
+
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            navigateToTalentDirectory(cleanApplicantName || candidateName);
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            color: '#133e36',
+                            background: '#f4f9f6',
+                            borderColor: '#a3cfbb',
+                            padding: '8px 12px'
+                          }}
+                          title="Redirect to Public Talent Directory to view all activities and records"
+                        >
+                          <Users size={14} color="#133e36" /> Redirect to Public Talent Directory →
+                        </Button>
+                      </div>
+                    )}
+
+                    {!isWorkforce && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            const biz = registeredBusinesses.find(b => b.id === record.id) || {
+                              id: record.id,
+                              businessName: candidateName,
+                              category: details.sector || 'Commercial Contractor',
+                              registrationNumber: details.registration || 'MOCI-GG-2024-8891',
+                              taxClearanceNumber: 'LRA-TC-2024-9982-ZWD',
+                              ownership: '100% Grand Gedean Owned',
+                              address: `${community}, Grand Gedeh County`,
+                              complianceStatus: 'Fully Prequalified & Certified (Section 13 Ring-Fence)',
+                              contactPerson: details.contactPerson || 'Authorized Representative',
+                              contactPhone: details.phone || '+231-886-554-321',
+                              verifiedQuotaClass: 'Priority Vendor - Tier 1 Ring-Fenced'
+                            };
+                            setBusinessModalVendor(biz);
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                            fontSize: '13px',
+                            fontWeight: 700,
+                            background: '#133e36',
+                            color: '#ffffff',
+                            border: '1px solid #133e36',
+                            padding: '10px 14px'
+                          }}
+                        >
+                          <Award size={15} /> View Official Compliance Certificate
+                        </Button>
+
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            navigateToBusinessDirectory(candidateName);
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            color: '#133e36',
+                            background: '#f4f9f6',
+                            borderColor: '#a3cfbb',
+                            padding: '8px 12px'
+                          }}
+                        >
+                          <Building2 size={14} color="#133e36" /> Redirect to Local Business Directory →
+                        </Button>
+                      </div>
                     )}
                   </div>
                 )}
