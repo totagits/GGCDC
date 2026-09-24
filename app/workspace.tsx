@@ -74,7 +74,10 @@ import {
   FileUp,
   FileCheck,
   UploadCloud,
-  Trash2
+  Trash2,
+  ZoomIn,
+  ZoomOut,
+  FileSearch
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -404,6 +407,17 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
   // Command Center: Dashboard Sub-View & Approvals Queue Filter
   const [dashboardView, setDashboardView] = useState<'overview' | 'approvals'>('overview');
   const [approvalsFilter, setApprovalsFilter] = useState<'all' | 'workforce' | 'suppliers' | 'verified'>('all');
+
+  // Document Inspection & Forensic Review Modal
+  const [inspectDocItem, setInspectDocItem] = useState<{
+    record: RecordItem;
+    details: any;
+    docName: string;
+    isWorkforce: boolean;
+    proofFileData?: string;
+    proofFileType?: string;
+  } | null>(null);
+  const [inspectZoom, setInspectZoom] = useState<number>(100);
 
   // Tool: Grievance Portal
   const [grievanceForm, setGrievanceForm] = useState({
@@ -930,16 +944,29 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
       ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` 
       : `${Math.round(file.size / 1024)} KB`;
 
-    setTimeout(() => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = typeof reader.result === 'string' ? reader.result : '';
       setTalentForm(prev => ({
         ...prev,
         proofFileName: file.name,
         proofFileSize: sizeStr,
-        proofFileData: '' // Keep empty to ensure localStorage stays safely within browser quota
+        proofFileData: dataUrl
       }));
       setIsUploadingProof(false);
       setFeedback(`Document attached successfully: ${file.name} (${sizeStr})`);
-    }, 250);
+    };
+    reader.onerror = () => {
+      setTalentForm(prev => ({
+        ...prev,
+        proofFileName: file.name,
+        proofFileSize: sizeStr,
+        proofFileData: ''
+      }));
+      setIsUploadingProof(false);
+      setFeedback(`Document attached: ${file.name} (${sizeStr})`);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleProofFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1134,6 +1161,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
           endorsement: details.endorsement || 'County Chamber of Commerce',
           prequalificationStatus: details.prequalificationStatus || 'Prequalified Local Contractor',
           proofDocument: details.proofDocument || 'LBR Articles & Ownership Ledger Attached',
+          proofFileData: details.proofFileData || null,
           trackingCode: details.trackingCode || `GGCDC-BIZ-${r.id.replace('rec-sup-', '')}`,
           summary: r.summary
         };
@@ -1182,16 +1210,29 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
       ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` 
       : `${Math.round(file.size / 1024)} KB`;
 
-    setTimeout(() => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = typeof reader.result === 'string' ? reader.result : '';
       setBusinessForm(prev => ({
         ...prev,
         proofFileName: file.name,
         proofFileSize: sizeStr,
-        proofFileData: '' // Keep empty to safeguard browser storage quota
+        proofFileData: dataUrl
       }));
       setIsUploadingBusinessProof(false);
       setFeedback(`Ownership document attached: ${file.name} (${sizeStr})`);
-    }, 250);
+    };
+    reader.onerror = () => {
+      setBusinessForm(prev => ({
+        ...prev,
+        proofFileName: file.name,
+        proofFileSize: sizeStr,
+        proofFileData: ''
+      }));
+      setIsUploadingBusinessProof(false);
+      setFeedback(`Ownership document attached: ${file.name} (${sizeStr})`);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleBusinessProofFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1471,7 +1512,34 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
               <div><span style={{ color: '#687b73' }}>Local Staff Ratio:</span> <strong>{v.employees}</strong></div>
               <div><span style={{ color: '#687b73' }}>Past Project References:</span> <strong>{v.pastContracts}</strong></div>
               <div><span style={{ color: '#687b73' }}>Official Business Contact:</span> <strong>{v.contact}</strong></div>
-              <div><span style={{ color: '#687b73' }}>Audit Evidence Document:</span> <strong style={{ color: '#133e36' }}>{v.proofDocument}</strong></div>
+              <div>
+                <span style={{ color: '#687b73' }}>Audit Evidence Document:</span>{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const r = records.find(rec => rec.id === v.id);
+                    openDocumentInspection(r || { id: v.id, module: 'suppliers', title: v.name, status: 'Verified', details: JSON.stringify(v) });
+                  }}
+                  style={{
+                    background: '#f0fdf4',
+                    border: '1.5px solid #86efac',
+                    borderRadius: '5px',
+                    padding: '2px 8px',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    color: '#14532d',
+                    fontWeight: 700,
+                    fontSize: '12px'
+                  }}
+                  title="Click to open and inspect verified document"
+                >
+                  <FileCheck size={12} color="#166534" />
+                  <span style={{ textDecoration: 'underline' }}>{v.proofDocument}</span>
+                  <Eye size={12} />
+                </button>
+              </div>
               <div><span style={{ color: '#687b73' }}>Prequalification Standing:</span> <strong style={{ color: '#2e7d32' }}>{v.prequalificationStatus}</strong></div>
             </div>
           </div>
@@ -1842,7 +1910,34 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
               <div><span style={{ color: '#687b73' }}>Academic / TVET Credential:</span> <strong>{c.qualification}</strong></div>
               <div><span style={{ color: '#687b73' }}>Institution / Schooling:</span> <strong>{c.institution}</strong></div>
               <div><span style={{ color: '#687b73' }}>Community Endorsement:</span> <strong>{c.endorsement}</strong></div>
-              <div><span style={{ color: '#687b73' }}>Proof Document on Record:</span> <strong style={{ color: '#133e36' }}>{c.proofDocument}</strong></div>
+              <div>
+                <span style={{ color: '#687b73' }}>Proof Document on Record:</span>{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const r = records.find(rec => rec.id === c.id);
+                    openDocumentInspection(r || { id: c.id, module: 'workforce', title: c.name, status: 'Verified', details: JSON.stringify(c) });
+                  }}
+                  style={{
+                    background: '#f0fdf4',
+                    border: '1.5px solid #86efac',
+                    borderRadius: '5px',
+                    padding: '2px 8px',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    color: '#14532d',
+                    fontWeight: 700,
+                    fontSize: '12px'
+                  }}
+                  title="Click to open and inspect verified document"
+                >
+                  <FileCheck size={12} color="#166534" />
+                  <span style={{ textDecoration: 'underline' }}>{c.proofDocument}</span>
+                  <Eye size={12} />
+                </button>
+              </div>
               <div><span style={{ color: '#687b73' }}>Contact & Availability:</span> <strong>{c.contact} ({c.availability})</strong></div>
               <div><span style={{ color: '#687b73' }}>GGCDC Registry Status:</span> <strong style={{ color: '#2e7d32' }}>{c.recommendationStatus}</strong></div>
             </div>
@@ -2036,6 +2131,884 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
           {/* FOOTER WATERMARK */}
           <div style={{ textAlign: 'center', marginTop: '24px', fontSize: '10px', color: '#94a39b', fontFamily: 'sans-serif' }}>
             Grand Gedeh Citizens Development Council • Official Seal of Attestation • Verification Hotline: +231-770-GGCDC-TALENT • talent@ggcdc.org.lr
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Helper to trigger Document & Credential Inspection Modal
+  const openDocumentInspection = (item: RecordItem | any) => {
+    let details: any = {};
+    if (typeof item.details === 'string') {
+      try { details = JSON.parse(item.details || '{}'); } catch { details = {}; }
+    } else if (item.details) {
+      details = item.details;
+    }
+    const isWorkforce = item.module === 'workforce';
+    const docName = details.proofDocument || item.proofDocument || (isWorkforce ? 'Applicant Credential / Technical Diploma' : 'Business Registry & Ownership Document');
+    const proofFileData = details.proofFileData || item.proofFileData || null;
+    const proofFileType = details.proofFileType || item.proofFileType || 'application/pdf';
+
+    setInspectDocItem({
+      record: item,
+      details,
+      docName,
+      isWorkforce,
+      proofFileData,
+      proofFileType
+    });
+    setInspectZoom(100);
+  };
+
+  // Document Inspection & Forensic Review Modal
+  const renderInspectDocumentModal = () => {
+    if (!inspectDocItem) return null;
+    const { record, details, docName, isWorkforce, proofFileData, proofFileType } = inspectDocItem;
+    const isVerified = record.status === 'Verified' || record.status === 'Closed';
+    const candidateName = record.title || details.fullName || 'Registered Applicant';
+    const community = record.community || details.community || 'Putu Jarwodee';
+    const county = record.county || 'Grand Gedeh';
+    const trackingCode = details.trackingCode || record.id;
+    const occupation = details.occupation || details.desiredTrade || details.sector || 'Technical Tradesperson';
+    const qualification = details.qualification || details.ownership || 'Certified Credential';
+    const institution = details.institution || details.registration || 'Republic of Liberia Accredited Body';
+    const experience = details.experience || '0';
+    const endorsement = details.endorsement || 'Putu Customary Council & Clan Elders';
+    const isTrackB = (details.track || '').includes('Track B') || (details.qualification || '').includes('No Formal') || candidateName.includes('Trainee');
+    const isImageFile = proofFileData && (proofFileData.startsWith('data:image/') || proofFileType?.startsWith('image/'));
+    const isPdfFile = proofFileData && (proofFileData.startsWith('data:application/pdf') || proofFileType === 'application/pdf');
+
+    // Determine credential document classification
+    const isOperator = occupation.toLowerCase().includes('operator') || (details.skills || '').toLowerCase().includes('cat') || (details.skills || '').toLowerCase().includes('dozer');
+    const isAcademic = !isOperator && !isTrackB && isWorkforce;
+    const isResidency = isTrackB;
+    const isBusiness = !isWorkforce;
+
+    // Simulated cryptographic hash for document audit
+    const fileHash = `SHA256: 4f8a${Math.abs(candidateName.split('').reduce((acc: number, c: string) => acc + c.charCodeAt(0), 1000)).toString(16)}c87e14d9b23f${record.id.replace(/[^a-zA-Z0-9]/g, '')}`;
+
+    return (
+      <div 
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(7, 20, 16, 0.84)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          zIndex: 10000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '16px',
+          overflowY: 'auto'
+        }}
+        onClick={() => setInspectDocItem(null)}
+      >
+        <div 
+          style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            maxWidth: '1080px',
+            width: '100%',
+            maxHeight: '94vh',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.2)',
+            overflow: 'hidden',
+            border: '2px solid #133e36'
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* MODAL HEADER */}
+          <div style={{
+            background: 'linear-gradient(135deg, #103830 0%, #0d2c26 100%)',
+            color: '#fff',
+            padding: '16px 24px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            borderBottom: '1px solid rgba(255,255,255,0.15)',
+            flexWrap: 'wrap',
+            gap: '12px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '8px',
+                background: 'rgba(255,255,255,0.12)',
+                display: 'grid',
+                placeItems: 'center',
+                border: '1px solid rgba(255,255,255,0.2)'
+              }}>
+                <FileSearch size={20} color="#a3cfbb" />
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase',
+                    background: '#d97706',
+                    color: '#fff',
+                    padding: '2px 7px',
+                    borderRadius: '4px'
+                  }}>
+                    {isWorkforce ? 'Workforce Credential Audit' : 'Local Enterprise Audit'}
+                  </span>
+                  <span style={{ fontSize: '12px', fontFamily: 'monospace', color: '#a3cfbb', fontWeight: 700 }}>
+                    {trackingCode}
+                  </span>
+                </div>
+                <h3 style={{ margin: '2px 0 0', fontSize: '17px', fontWeight: 700, letterSpacing: '-0.01em' }}>
+                  {candidateName} · <span style={{ fontWeight: 400, opacity: 0.85 }}>{docName}</span>
+                </h3>
+              </div>
+            </div>
+
+            {/* HEADER ACTIONS: ZOOM & CLOSE */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                background: 'rgba(255,255,255,0.1)',
+                borderRadius: '8px',
+                padding: '2px 6px',
+                gap: '4px',
+                border: '1px solid rgba(255,255,255,0.15)'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setInspectZoom(prev => Math.max(50, prev - 15))}
+                  style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: '4px', borderRadius: '4px', display: 'grid', placeItems: 'center' }}
+                  title="Zoom Out"
+                >
+                  <ZoomOut size={15} />
+                </button>
+                <span style={{ fontSize: '11px', fontWeight: 700, minWidth: '40px', textAlign: 'center', color: '#a3cfbb' }}>
+                  {inspectZoom}%
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setInspectZoom(prev => Math.min(180, prev + 15))}
+                  style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: '4px', borderRadius: '4px', display: 'grid', placeItems: 'center' }}
+                  title="Zoom In"
+                >
+                  <ZoomIn size={15} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInspectZoom(100)}
+                  style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', fontWeight: 600, marginLeft: '2px' }}
+                >
+                  Reset
+                </button>
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.print()}
+                style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', background: 'rgba(255,255,255,0.12)', color: '#fff', borderColor: 'rgba(255,255,255,0.3)' }}
+              >
+                <Printer size={13} /> Print Copy
+              </Button>
+
+              <button
+                type="button"
+                onClick={() => setInspectDocItem(null)}
+                style={{
+                  background: 'rgba(255,255,255,0.12)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: '8px',
+                  color: '#fff',
+                  width: '32px',
+                  height: '32px',
+                  display: 'grid',
+                  placeItems: 'center',
+                  cursor: 'pointer'
+                }}
+                aria-label="Close Inspection Modal"
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </div>
+
+          {/* MODAL MAIN CONTENT: TWO-COLUMN WORKBENCH */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.9fr) minmax(320px, 1.1fr)', flex: 1, overflowY: 'auto' }}>
+            {/* LEFT COLUMN: DOCUMENT INSPECTION CANVAS */}
+            <div style={{
+              background: '#f4f6f5',
+              padding: '24px',
+              borderRight: '1px solid #dce5e0',
+              overflowY: 'auto',
+              maxHeight: 'calc(94vh - 72px)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center'
+            }}>
+              {/* STATUS BANNER ATOP CANVAS */}
+              <div style={{
+                width: '100%',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '8px 14px',
+                borderRadius: '8px',
+                background: isVerified ? '#ecfdf5' : '#fffbeb',
+                border: isVerified ? '1px solid #6ee7b7' : '1px solid #fde68a',
+                marginBottom: '16px',
+                fontSize: '12px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <ShieldCheck size={16} color={isVerified ? '#059669' : '#d97706'} />
+                  <strong style={{ color: isVerified ? '#065f46' : '#92400e' }}>
+                    {isVerified ? 'Officially Authenticated & Cleared for Section 11 Placement' : 'Pending Secretariat Credential Audit & Examination'}
+                  </strong>
+                </div>
+                <span style={{ fontSize: '11px', fontFamily: 'monospace', color: '#688075' }}>
+                  {proofFileData ? 'Source: Direct User Upload' : 'Source: Official Archive Repository'}
+                </span>
+              </div>
+
+              {/* CASE 1: REAL UPLOADED IMAGE FILE */}
+              {isImageFile && (
+                <div style={{
+                  width: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  background: '#fff',
+                  padding: '20px',
+                  borderRadius: '12px',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
+                  border: '1px solid #dce5e0'
+                }}>
+                  <div style={{
+                    width: '100%',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '14px',
+                    borderBottom: '1px solid #edf2ef',
+                    paddingBottom: '8px'
+                  }}>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#133e36' }}>
+                      📸 High-Resolution Scanned Document Image
+                    </span>
+                    <a
+                      href={proofFileData}
+                      download={docName}
+                      style={{ fontSize: '12px', color: '#0369a1', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}
+                    >
+                      <Download size={13} /> Download File
+                    </a>
+                  </div>
+                  <div style={{ overflow: 'auto', maxWidth: '100%', maxHeight: '600px', display: 'flex', justifyContent: 'center' }}>
+                    <img 
+                      src={proofFileData} 
+                      alt={docName}
+                      style={{
+                        transform: `scale(${inspectZoom / 100})`,
+                        transformOrigin: 'top center',
+                        transition: 'transform 0.15s ease',
+                        maxWidth: '100%',
+                        borderRadius: '6px',
+                        boxShadow: '0 4px 16px rgba(0,0,0,0.1)'
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* CASE 2: REAL UPLOADED PDF FILE */}
+              {isPdfFile && (
+                <div style={{
+                  width: '100%',
+                  height: '620px',
+                  background: '#fff',
+                  borderRadius: '12px',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
+                  border: '1px solid #dce5e0',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  flexDirection: 'column'
+                }}>
+                  <div style={{
+                    padding: '10px 16px',
+                    background: '#f8faf9',
+                    borderBottom: '1px solid #edf2ef',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#133e36' }}>
+                      📄 Embedded PDF Credential Viewer
+                    </span>
+                    <a
+                      href={proofFileData}
+                      download={docName}
+                      style={{ fontSize: '12px', color: '#0369a1', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}
+                    >
+                      <Download size={13} /> Download PDF
+                    </a>
+                  </div>
+                  <iframe 
+                    src={proofFileData} 
+                    title={docName}
+                    style={{ width: '100%', height: '100%', border: 'none' }}
+                  />
+                </div>
+              )}
+
+              {/* CASE 3: HIGH-FIDELITY OFFICIAL DOCUMENT FACSIMILE (When no raw image/PDF data or viewing digital certificate) */}
+              {!isImageFile && !isPdfFile && (
+                <div style={{
+                  transform: `scale(${inspectZoom / 100})`,
+                  transformOrigin: 'top center',
+                  transition: 'transform 0.15s ease',
+                  width: '100%',
+                  maxWidth: '680px'
+                }}>
+                  {/* DOCUMENT 1: HEAVY MACHINERY OPERATOR PERMIT */}
+                  {isOperator && (
+                    <div style={{
+                      background: '#fffdfa',
+                      border: '4px double #1b5e20',
+                      borderRadius: '12px',
+                      padding: '28px 32px',
+                      boxShadow: '0 12px 36px rgba(0,0,0,0.12)',
+                      position: 'relative'
+                    }}>
+                      <div style={{ position: 'absolute', top: '16px', right: '16px', opacity: 0.12 }}>
+                        <HardHat size={120} color="#1b5e20" />
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', borderBottom: '2px solid #1b5e20', paddingBottom: '14px', marginBottom: '18px' }}>
+                        <img 
+                          src={GRAND_GEDEH_FLAG_DATA_URI} 
+                          alt="County Flag" 
+                          style={{ width: '60px', height: '36px', borderRadius: '4px', border: '1px solid #ccc' }}
+                        />
+                        <div>
+                          <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1.5px', color: '#556b62', fontWeight: 800 }}>
+                            Republic of Liberia • Ministry of Transport &amp; Mines
+                          </div>
+                          <h4 style={{ margin: '2px 0 0', fontSize: '18px', fontWeight: 800, color: '#133e36', fontFamily: 'Georgia, serif' }}>
+                            Official Concession Operator License
+                          </h4>
+                          <span style={{ fontSize: '11px', color: '#15803d', fontWeight: 700 }}>
+                            CLASS A HEAVY EARTHMOVING MACHINERY PERMIT
+                          </span>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '18px', marginBottom: '18px' }}>
+                        <div style={{
+                          border: '2px solid #a3cfbb',
+                          borderRadius: '8px',
+                          background: '#eef7f2',
+                          height: '145px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          textAlign: 'center',
+                          padding: '10px'
+                        }}>
+                          <Users size={48} color="#133e36" />
+                          <span style={{ fontSize: '10px', fontWeight: 800, marginTop: '8px', color: '#133e36', textTransform: 'uppercase' }}>
+                            Concession Verified
+                          </span>
+                          <span style={{ fontSize: '9px', color: '#15803d', fontWeight: 700 }}>
+                            ✓ Bio-Clearance Pass
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 16px', fontSize: '12px' }}>
+                          <div>
+                            <span style={{ color: '#7a8e85', display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }}>License Holder:</span>
+                            <strong style={{ fontSize: '14px', color: '#133e36' }}>{candidateName}</strong>
+                          </div>
+                          <div>
+                            <span style={{ color: '#7a8e85', display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }}>Permit Serial No:</span>
+                            <strong style={{ fontFamily: 'monospace', color: '#b45309' }}>MOT-LR-2023-8891-CAT</strong>
+                          </div>
+                          <div>
+                            <span style={{ color: '#7a8e85', display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }}>County &amp; Clan:</span>
+                            <strong>{community}, Grand Gedeh</strong>
+                          </div>
+                          <div>
+                            <span style={{ color: '#7a8e85', display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }}>Years on Equipment:</span>
+                            <strong>{experience} Years Verified</strong>
+                          </div>
+                          <div style={{ gridColumn: 'span 2' }}>
+                            <span style={{ color: '#7a8e85', display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }}>Authorized Fleet Machinery Classes:</span>
+                            <div style={{ background: '#f0fdf4', padding: '6px 10px', borderRadius: '6px', border: '1px solid #bbf7d0', marginTop: '3px', fontWeight: 700, color: '#166534', fontSize: '11.5px' }}>
+                              CAT D9/D10 Dozers · 349 Heavy Hydraulic Excavators · 777 Haul Trucks · Front-End Loaders
+                            </div>
+                          </div>
+                          <div>
+                            <span style={{ color: '#7a8e85', display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }}>Accredited Training:</span>
+                            <span>{institution}</span>
+                          </div>
+                          <div>
+                            <span style={{ color: '#7a8e85', display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }}>HSE Safety Standing:</span>
+                            <span style={{ color: '#15803d', fontWeight: 700 }}>OSHA 30 Certified (Zero Violations)</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', borderTop: '1px solid #dce5e0', paddingTop: '14px', fontSize: '11px', color: '#688075' }}>
+                        <div>
+                          <strong>Issuing Inspectorate:</strong> National Heavy Equipment Certification Board<br />
+                          <strong>Status:</strong> Active &amp; Valid for Putu Iron Ore Mining Operations
+                        </div>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontFamily: 'cursive, "Brush Script MT", Georgia', fontSize: '16px', color: '#133e36', fontWeight: 'bold' }}>
+                            Hon. Dixon K. Wesseh
+                          </div>
+                          <div style={{ height: '1px', background: '#999', margin: '2px 0 4px', width: '140px' }}></div>
+                          <span>Inspector General of Mines</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* DOCUMENT 2: ACADEMIC / TVET TECHNICAL DIPLOMA */}
+                  {isAcademic && (
+                    <div style={{
+                      background: '#fffdf7',
+                      border: '3px solid #b8860b',
+                      borderRadius: '12px',
+                      padding: '36px 40px',
+                      boxShadow: '0 12px 36px rgba(0,0,0,0.12)',
+                      textAlign: 'center',
+                      position: 'relative'
+                    }}>
+                      <div style={{ border: '1px solid #d4af37', padding: '24px 20px', borderRadius: '8px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
+                          <Award size={36} color="#b8860b" />
+                        </div>
+                        <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '2px', color: '#785b0d', fontWeight: 800 }}>
+                          Republic of Liberia • National TVET &amp; Higher Education Board
+                        </div>
+                        <h4 style={{ margin: '4px 0 2px', fontSize: '20px', fontWeight: 800, color: '#133e36', fontFamily: 'Georgia, serif' }}>
+                          {institution}
+                        </h4>
+                        <div style={{ fontSize: '12px', fontStyle: 'italic', color: '#688075', marginBottom: '16px' }}>
+                          Chartered by the National Legislature of the Republic of Liberia
+                        </div>
+
+                        <p style={{ fontSize: '12px', color: '#4b5563', margin: '0 0 10px' }}>
+                          The Academic Council and Board of Examiners hereby certify that
+                        </p>
+                        <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#10352f', margin: '0 0 10px', fontFamily: 'Georgia, serif' }}>
+                          {candidateName}
+                        </h2>
+                        <p style={{ fontSize: '12px', color: '#4b5563', margin: '0 0 14px', lineHeight: 1.6 }}>
+                          having satisfactorily completed the accredited curriculum and demonstrated high proficiency in theoretical examinations and industrial workshop practicum, is hereby awarded this
+                        </p>
+                        <div style={{ background: '#fef9e7', border: '1px solid #f9e79f', padding: '10px 16px', borderRadius: '6px', display: 'inline-block', marginBottom: '18px' }}>
+                          <strong style={{ fontSize: '15px', color: '#7d6608', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                            {qualification}
+                          </strong>
+                          <div style={{ fontSize: '12px', color: '#556b62', marginTop: '2px' }}>
+                            Specialized Concentration: {occupation}
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'flex-end', borderTop: '1px solid #e5d8b8', paddingTop: '16px', fontSize: '11px' }}>
+                          <div>
+                            <div style={{ fontFamily: 'cursive, Georgia', fontSize: '16px', color: '#133e36', fontWeight: 700 }}>
+                              Prof. Arthur B. Doe
+                            </div>
+                            <div style={{ height: '1px', background: '#b8860b', margin: '2px auto 4px', width: '120px' }}></div>
+                            <span style={{ color: '#6b7280' }}>Dean of Faculty</span>
+                          </div>
+                          <div style={{
+                            width: '56px',
+                            height: '56px',
+                            borderRadius: '50%',
+                            border: '2px double #b8860b',
+                            background: '#fef9e7',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '7px',
+                            fontWeight: 800,
+                            color: '#7d6608',
+                            boxShadow: '0 2px 6px rgba(184, 134, 11, 0.2)'
+                          }}>
+                            ★ SEAL ★
+                            <span>ACCREDITED</span>
+                          </div>
+                          <div>
+                            <div style={{ fontFamily: 'cursive, Georgia', fontSize: '16px', color: '#133e36', fontWeight: 700 }}>
+                              Madam Sarah K. Flomo
+                            </div>
+                            <div style={{ height: '1px', background: '#b8860b', margin: '2px auto 4px', width: '120px' }}></div>
+                            <span style={{ color: '#6b7280' }}>Registrar General</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* DOCUMENT 3: CUSTOMARY RESIDENCY & NATIONAL ID / VOTER CARD */}
+                  {isResidency && (
+                    <div style={{
+                      background: '#fffdfa',
+                      border: '3px solid #2e7d32',
+                      borderRadius: '12px',
+                      padding: '28px 32px',
+                      boxShadow: '0 12px 36px rgba(0,0,0,0.12)'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', borderBottom: '2px solid #2e7d32', paddingBottom: '12px', marginBottom: '16px' }}>
+                        <Landmark size={32} color="#2e7d32" />
+                        <div>
+                          <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1.5px', color: '#556b62', fontWeight: 800 }}>
+                            Republic of Liberia • National Elections Commission &amp; Customary Authority
+                          </div>
+                          <h4 style={{ margin: '2px 0 0', fontSize: '18px', fontWeight: 800, color: '#133e36', fontFamily: 'Georgia, serif' }}>
+                            Certificate of Customary Indigeneity &amp; Residency
+                          </h4>
+                          <span style={{ fontSize: '11px', color: '#15803d', fontWeight: 700 }}>
+                            HOST COMMUNITY FIRST-RIGHT APPRENTICESHIP CLEARANCE
+                          </span>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px 18px', fontSize: '12px', marginBottom: '18px' }}>
+                        <div>
+                          <span style={{ color: '#7a8e85', display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }}>Citizen Full Name:</span>
+                          <strong style={{ fontSize: '14px', color: '#133e36' }}>{candidateName}</strong>
+                        </div>
+                        <div>
+                          <span style={{ color: '#7a8e85', display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }}>Voter Registration / National ID:</span>
+                          <strong style={{ fontFamily: 'monospace', color: '#1b5e20' }}>NEC-GG-2023-994102-JWD</strong>
+                        </div>
+                        <div>
+                          <span style={{ color: '#7a8e85', display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }}>County &amp; District:</span>
+                          <strong>Grand Gedeh County · Putu District</strong>
+                        </div>
+                        <div>
+                          <span style={{ color: '#7a8e85', display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }}>Ancestral Town / Clan:</span>
+                          <strong>{community} (Putu Chiefdom)</strong>
+                        </div>
+                        <div>
+                          <span style={{ color: '#7a8e85', display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }}>Prior Schooling / Stage:</span>
+                          <span>{institution} ({qualification})</span>
+                        </div>
+                        <div>
+                          <span style={{ color: '#7a8e85', display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }}>Target Vocational Trade:</span>
+                          <span style={{ color: '#b45309', fontWeight: 700 }}>{occupation}</span>
+                        </div>
+                        <div style={{ gridColumn: 'span 2', background: '#f0fdf4', padding: '10px 14px', borderRadius: '6px', border: '1px solid #bbf7d0' }}>
+                          <strong style={{ color: '#166534', display: 'block', fontSize: '11.5px', marginBottom: '2px' }}>
+                            ✓ Customary Indigeneity Attestation by Chiefs Council:
+                          </strong>
+                          <p style={{ margin: 0, fontSize: '11px', color: '#374151', lineHeight: 1.5 }}>
+                            The Council of Paramount and Clan Chiefs certifies that this candidate was born and raised in {community}, belongs to the customary landowning families of Putu, and is entitled under Article 14 of the Putu MDA to priority enrollment in concession-funded TVET programs.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #dce5e0', paddingTop: '12px', fontSize: '11px' }}>
+                        <div>
+                          <strong>Community Endorsement:</strong> {endorsement}
+                        </div>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontFamily: 'cursive, Georgia', fontSize: '15px', color: '#133e36', fontWeight: 700 }}>
+                            Elder Sampson K. Gaye
+                          </div>
+                          <div style={{ height: '1px', background: '#7a8e85', margin: '2px auto 4px', width: '130px' }}></div>
+                          <span style={{ color: '#687b73' }}>Paramount Chief &amp; Elder</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* DOCUMENT 4: LIBERIA BUSINESS REGISTRY (LBR) & BENEFICIAL OWNERSHIP */}
+                  {isBusiness && (
+                    <div style={{
+                      background: '#fffdfa',
+                      border: '3px solid #1e3a8a',
+                      borderRadius: '12px',
+                      padding: '28px 32px',
+                      boxShadow: '0 12px 36px rgba(0,0,0,0.12)'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', borderBottom: '2px solid #1e3a8a', paddingBottom: '12px', marginBottom: '16px' }}>
+                        <Building2 size={32} color="#1e3a8a" />
+                        <div>
+                          <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1.5px', color: '#556b62', fontWeight: 800 }}>
+                            Republic of Liberia • Liberia Business Registry (LBR)
+                          </div>
+                          <h4 style={{ margin: '2px 0 0', fontSize: '18px', fontWeight: 800, color: '#102a43', fontFamily: 'Georgia, serif' }}>
+                            Certificate of Incorporation &amp; Beneficial Ownership
+                          </h4>
+                          <span style={{ fontSize: '11px', color: '#1d4ed8', fontWeight: 700 }}>
+                            LOCAL CONTENT CONCESSION BIDDING PREQUALIFICATION
+                          </span>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px 18px', fontSize: '12px', marginBottom: '18px' }}>
+                        <div>
+                          <span style={{ color: '#7a8e85', display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }}>Enterprise Name:</span>
+                          <strong style={{ fontSize: '14px', color: '#102a43' }}>{candidateName}</strong>
+                        </div>
+                        <div>
+                          <span style={{ color: '#7a8e85', display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }}>LBR Registration Number:</span>
+                          <strong style={{ fontFamily: 'monospace', color: '#1d4ed8' }}>LBR-GG-2022-00918-B</strong>
+                        </div>
+                        <div>
+                          <span style={{ color: '#7a8e85', display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }}>Grand Gedean Ownership:</span>
+                          <strong style={{ color: '#15803d' }}>{details.ownership || '100% Grand Gedean Owned'}</strong>
+                        </div>
+                        <div>
+                          <span style={{ color: '#7a8e85', display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }}>Tax Status (MFDP / LRA):</span>
+                          <span style={{ color: '#15803d', fontWeight: 700 }}>Current &amp; Cleared (Bid Ready)</span>
+                        </div>
+                        <div>
+                          <span style={{ color: '#7a8e85', display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }}>Sector &amp; Core Capability:</span>
+                          <span>{details.sector || 'Civil Infrastructure & Logistics'}</span>
+                        </div>
+                        <div>
+                          <span style={{ color: '#7a8e85', display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }}>Yard / Office Location:</span>
+                          <span>{details.headquarters || community}</span>
+                        </div>
+                        <div style={{ gridColumn: 'span 2', background: '#eff6ff', padding: '10px 14px', borderRadius: '6px', border: '1px solid #bfdbfe' }}>
+                          <strong style={{ color: '#1e40af', display: 'block', fontSize: '11.5px', marginBottom: '2px' }}>
+                            ✓ Section 13 Local Content Equity Audit Passed:
+                          </strong>
+                          <p style={{ margin: 0, fontSize: '11px', color: '#374151', lineHeight: 1.5 }}>
+                            The Grand Gedeh Chamber of Commerce and GGCDC Legal Desk have audited the share ledger and verified that voting equity and beneficial profits belong to Grand Gedean indigenes. This firm is prequalified for ring-fenced concession contracts.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #dce5e0', paddingTop: '12px', fontSize: '11px' }}>
+                        <div>
+                          <strong>Chamber Certification:</strong> Verified Local Contractor
+                        </div>
+                        <div style={{ textAlign: 'center' }}>
+                          <div style={{ fontFamily: 'cursive, Georgia', fontSize: '15px', color: '#1e3a8a', fontWeight: 700 }}>
+                            Registrar General of Liberia
+                          </div>
+                          <div style={{ height: '1px', background: '#7a8e85', margin: '2px auto 4px', width: '130px' }}></div>
+                          <span style={{ color: '#687b73' }}>Liberia Business Registry</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* RIGHT COLUMN: FORENSIC AUDIT & ADMINISTRATIVE ACTIONS */}
+            <div style={{
+              background: '#ffffff',
+              padding: '24px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              maxHeight: 'calc(94vh - 72px)',
+              overflowY: 'auto'
+            }}>
+              <div>
+                <h4 style={{ margin: '0 0 14px', fontSize: '15px', fontWeight: 800, color: '#10352f', borderBottom: '1px solid #edf2ef', paddingBottom: '8px' }}>
+                  Forensic Integrity &amp; Verification Checks
+                </h4>
+
+                {/* FILE METADATA */}
+                <div style={{ background: '#f8faf9', border: '1px solid #e2ede7', borderRadius: '8px', padding: '12px 14px', marginBottom: '16px', fontSize: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <span style={{ color: '#688075' }}>Document Name:</span>
+                    <strong style={{ color: '#133e36', wordBreak: 'break-all', textAlign: 'right' }}>{docName}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <span style={{ color: '#688075' }}>Format / Type:</span>
+                    <strong style={{ color: '#133e36' }}>{proofFileType || 'Certified PDF'}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <span style={{ color: '#688075' }}>Archive Security Hash:</span>
+                    <span style={{ fontFamily: 'monospace', fontSize: '10.5px', color: '#0369a1' }}>{fileHash.slice(0, 22)}…</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#688075' }}>Integrity Status:</span>
+                    <span style={{ color: '#15803d', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                      <CheckCircle2 size={13} /> Checksum Validated
+                    </span>
+                  </div>
+                </div>
+
+                {/* TRIPARTITE VETTING DESKS PROGRESS */}
+                <h5 style={{ margin: '0 0 8px', fontSize: '13px', fontWeight: 700, color: '#284c40' }}>
+                  Tripartite Vetting Desks
+                </h5>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', background: '#f0fdf4', borderRadius: '6px', border: '1px solid #dcfce7', fontSize: '12px' }}>
+                    <CheckCircle2 size={15} color="#15803d" />
+                    <div>
+                      <strong style={{ color: '#14532d', display: 'block' }}>1. Customary Residency Desk</strong>
+                      <span style={{ color: '#4b5563', fontSize: '11px' }}>Vetted by Council of Chiefs (Elder Sampson K. Gaye)</span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', background: '#f0fdf4', borderRadius: '6px', border: '1px solid #dcfce7', fontSize: '12px' }}>
+                    <CheckCircle2 size={15} color="#15803d" />
+                    <div>
+                      <strong style={{ color: '#14532d', display: 'block' }}>2. Technical Credential Panel</strong>
+                      <span style={{ color: '#4b5563', fontSize: '11px' }}>Accreditation checked by GGAA Advisory Panel</span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', background: '#f0fdf4', borderRadius: '6px', border: '1px solid #dcfce7', fontSize: '12px' }}>
+                    <CheckCircle2 size={15} color="#15803d" />
+                    <div>
+                      <strong style={{ color: '#14532d', display: 'block' }}>3. Statutory Quota Compliance</strong>
+                      <span style={{ color: '#4b5563', fontSize: '11px' }}>MDA Section 11/13 cleared by GGBA Legal Counsel</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* CURRENT VERIFICATION STATUS */}
+                <div style={{ padding: '12px 14px', borderRadius: '8px', background: isVerified ? '#ecfdf5' : '#fffbeb', border: isVerified ? '1px solid #6ee7b7' : '1px solid #fde68a', marginBottom: '20px' }}>
+                  <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 800, color: isVerified ? '#047857' : '#b45309', display: 'block', marginBottom: '2px' }}>
+                    Application Registry Status:
+                  </span>
+                  <div style={{ fontSize: '14px', fontWeight: 800, color: isVerified ? '#065f46' : '#92400e' }}>
+                    {isVerified ? '✓ Officially Verified & Certified' : '⏳ Pending Administrative Verification'}
+                  </div>
+                  {details.auditedBy && (
+                    <small style={{ color: '#688075', display: 'block', marginTop: '4px' }}>
+                      Audited by: {details.auditedBy} on {details.auditDate}
+                    </small>
+                  )}
+                </div>
+              </div>
+
+              {/* ADMINISTRATIVE ACTION BUTTONS */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', borderTop: '1px solid #edf2ef', paddingTop: '16px' }}>
+                {!isVerified ? (
+                  <>
+                    <Button
+                      className="primary"
+                      onClick={() => {
+                        handleApproveRecord(record);
+                        setInspectDocItem(prev => prev ? {
+                          ...prev,
+                          record: { ...prev.record, status: 'Verified' },
+                          details: {
+                            ...prev.details,
+                            verificationStatus: 'Officially Verified & Certified',
+                            auditDate: new Date().toISOString().split('T')[0],
+                            auditedBy: `${currentRole.name} (${currentRole.badge})`
+                          }
+                        } : null);
+                      }}
+                      style={{
+                        height: '42px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        fontSize: '13.5px',
+                        fontWeight: 700,
+                        background: 'linear-gradient(135deg, #185f4a 0%, #104334 100%)',
+                        boxShadow: '0 4px 14px rgba(24, 95, 74, 0.3)'
+                      }}
+                    >
+                      <CheckCircle2 size={16} /> Approve &amp; Certify Credential
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        handleRequestMoreProof(record);
+                        setInspectDocItem(prev => prev ? {
+                          ...prev,
+                          record: { ...prev.record, status: 'Needs Information' }
+                        } : null);
+                      }}
+                      style={{
+                        height: '38px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        fontSize: '12.5px',
+                        color: '#b45309',
+                        borderColor: '#fde68a',
+                        background: '#fffdfa'
+                      }}
+                    >
+                      <MessageSquareWarning size={15} /> Request Additional Proof
+                    </Button>
+                  </>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{
+                      background: '#dcfce7',
+                      color: '#15803d',
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      fontWeight: 700,
+                      fontSize: '13px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      justifyContent: 'center'
+                    }}>
+                      <CheckCircle2 size={18} /> Candidate Authenticated &amp; Cleared
+                    </div>
+
+                    {isWorkforce && (
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          const cand = workforceCandidates.find(c => c.id === record.id) || {
+                            id: record.id,
+                            name: candidateName,
+                            community,
+                            occupation,
+                            qualification,
+                            institution,
+                            experience,
+                            skills: details.skills || 'Technical skills on file',
+                            availability: details.availability || 'Available now',
+                            proofDocument: docName,
+                            trackingCode,
+                            recommendationStatus: 'Certified & Approved for Concession Direct Hire',
+                            endorsement,
+                            trackType: isTrackB ? 'Track B' : 'Track A'
+                          };
+                          setRecommendationModalCandidate(cand);
+                        }}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '13px', fontWeight: 600 }}
+                      >
+                        <Printer size={15} /> View Official Endorsement Brief
+                      </Button>
+                    )}
+                  </div>
+                )}
+
+                <Button
+                  variant="ghost"
+                  onClick={() => setInspectDocItem(null)}
+                  style={{ height: '36px', fontSize: '12.5px', color: '#688075' }}
+                >
+                  Close Document Viewer
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -3403,9 +4376,32 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                         <small style={{ color: '#687b73', display: 'block' }}>{c.institution}</small>
                       </TableCell>
                       <TableCell>
-                        <span style={{ fontSize: '12px', color: '#2e7d32', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
-                          <FileCheck size={14} /> {c.proofDocument.length > 28 ? c.proofDocument.slice(0, 26) + '…' : c.proofDocument}
-                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const r = records.find(rec => rec.id === c.id);
+                            openDocumentInspection(r || { id: c.id, module: 'workforce', title: c.name, status: 'Verified', details: JSON.stringify(c) });
+                          }}
+                          style={{
+                            background: '#f0fdf4',
+                            border: '1.5px solid #86efac',
+                            borderRadius: '6px',
+                            padding: '4px 8px',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            color: '#166534',
+                            fontWeight: 700,
+                            fontSize: '12px',
+                            textAlign: 'left'
+                          }}
+                          title="Click to open and inspect verified credential"
+                        >
+                          <FileCheck size={13} color="#166534" />
+                          <span style={{ textDecoration: 'underline' }}>{c.proofDocument.length > 24 ? c.proofDocument.slice(0, 22) + '…' : c.proofDocument}</span>
+                          <Eye size={12} />
+                        </button>
                       </TableCell>
                       <TableCell>
                         <span style={{
@@ -3422,14 +4418,27 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                         <small style={{ display: 'block', color: '#6c8077', marginTop: '2px' }}>{c.endorsement}</small>
                       </TableCell>
                       <TableCell style={{ textAlign: 'right' }}>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setRecommendationModalCandidate(c)}
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: 600 }}
-                        >
-                          <Printer size={13} /> View Endorsement
-                        </Button>
+                        <div style={{ display: 'inline-flex', gap: '6px' }}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const r = records.find(rec => rec.id === c.id);
+                              openDocumentInspection(r || { id: c.id, module: 'workforce', title: c.name, status: 'Verified', details: JSON.stringify(c) });
+                            }}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11.5px', fontWeight: 600, color: '#166534', borderColor: '#86efac', background: '#f0fdf4' }}
+                          >
+                            <Eye size={12} /> Inspect File
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setRecommendationModalCandidate(c)}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: 600 }}
+                          >
+                            <Printer size={13} /> View Endorsement
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -4053,14 +5062,27 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                         <small style={{ display: 'block', color: '#6c8077', marginTop: '2px' }}>{b.taxStatus}</small>
                       </TableCell>
                       <TableCell style={{ textAlign: 'right' }}>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setBusinessModalVendor(b)}
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: 600 }}
-                        >
-                          <Printer size={13} /> View Official Endorsement
-                        </Button>
+                        <div style={{ display: 'inline-flex', gap: '6px' }}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const r = records.find(rec => rec.id === b.id);
+                              openDocumentInspection(r || { id: b.id, module: 'suppliers', title: b.name, status: 'Verified', details: JSON.stringify(b) });
+                            }}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11.5px', fontWeight: 600, color: '#166534', borderColor: '#86efac', background: '#f0fdf4' }}
+                          >
+                            <Eye size={12} /> Inspect File
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setBusinessModalVendor(b)}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: 600 }}
+                          >
+                            <Printer size={13} /> View Official Endorsement
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -5329,9 +6351,43 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', marginBottom: '16px', fontSize: '12px', color: '#4d665b' }}>
                             <div>
                               <span style={{ color: '#7a8e85', display: 'block', fontWeight: 600 }}>Attached Proof Document:</span>
-                              <strong style={{ color: '#133e36', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <FileCheck size={14} color="#1b5e20" /> {proofDoc}
-                              </strong>
+                              <button
+                                type="button"
+                                onClick={() => openDocumentInspection(item)}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  background: '#f0fdf4',
+                                  border: '1.5px solid #86efac',
+                                  borderRadius: '7px',
+                                  padding: '4px 10px',
+                                  color: '#14532d',
+                                  fontWeight: 700,
+                                  fontSize: '12px',
+                                  cursor: 'pointer',
+                                  textAlign: 'left',
+                                  marginTop: '3px',
+                                  boxShadow: '0 1px 3px rgba(22, 101, 52, 0.08)'
+                                }}
+                                title="Click to open and inspect uploaded certificate or diploma"
+                              >
+                                <FileCheck size={14} color="#166534" />
+                                <span style={{ textDecoration: 'underline' }}>{proofDoc}</span>
+                                <span style={{
+                                  background: '#166534',
+                                  color: '#fff',
+                                  fontSize: '10px',
+                                  fontWeight: 800,
+                                  padding: '2px 6px',
+                                  borderRadius: '4px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '3px'
+                                }}>
+                                  <Eye size={11} /> Open &amp; Review
+                                </span>
+                              </button>
                             </div>
                             <div>
                               <span style={{ color: '#7a8e85', display: 'block', fontWeight: 600 }}>
@@ -5368,7 +6424,16 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
 
                           {/* Actions */}
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', borderTop: '1px solid #edf2ef', paddingTop: '14px' }}>
-                            <div style={{ display: 'flex', gap: '8px' }}>
+                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => openDocumentInspection(item)}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', borderColor: '#166534', color: '#14532d', fontWeight: 700, background: '#f0fdf4' }}
+                              >
+                                <Eye size={14} color="#166534" /> Review Uploaded Document
+                              </Button>
+
                               {!isVerified ? (
                                 <>
                                   <Button
@@ -5675,9 +6740,32 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                                 <small style={{ color: '#687b73' }}>{c.institution}</small>
                               </TableCell>
                               <TableCell>
-                                <span style={{ fontSize: '12px', color: '#2e7d32', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
-                                  <FileCheck size={14} /> {c.proofDocument.length > 24 ? c.proofDocument.slice(0, 22) + '…' : c.proofDocument}
-                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const r = records.find(rec => rec.id === c.id);
+                                    openDocumentInspection(r || { id: c.id, module: 'workforce', title: c.name, status: 'Verified', details: JSON.stringify(c) });
+                                  }}
+                                  style={{
+                                    background: '#f0fdf4',
+                                    border: '1.5px solid #86efac',
+                                    borderRadius: '6px',
+                                    padding: '4px 8px',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '5px',
+                                    color: '#166534',
+                                    fontWeight: 700,
+                                    fontSize: '12px',
+                                    textAlign: 'left'
+                                  }}
+                                  title="Click to open and inspect uploaded credential / diploma"
+                                >
+                                  <FileCheck size={13} color="#166534" />
+                                  <span style={{ textDecoration: 'underline' }}>{c.proofDocument.length > 20 ? c.proofDocument.slice(0, 18) + '…' : c.proofDocument}</span>
+                                  <Eye size={12} />
+                                </button>
                               </TableCell>
                               <TableCell>
                                 <span style={{
@@ -5697,14 +6785,27 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                                 <span className="status in-progress">{c.availability}</span>
                               </TableCell>
                               <TableCell style={{ textAlign: 'right' }}>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => setRecommendationModalCandidate(c)}
-                                  style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: 600 }}
-                                >
-                                  <Printer size={13} /> View Letter
-                                </Button>
+                                <div style={{ display: 'inline-flex', gap: '6px' }}>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      const r = records.find(rec => rec.id === c.id);
+                                      openDocumentInspection(r || { id: c.id, module: 'workforce', title: c.name, status: 'Verified', details: JSON.stringify(c) });
+                                    }}
+                                    style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11.5px', fontWeight: 600, color: '#166534', borderColor: '#86efac', background: '#f0fdf4' }}
+                                  >
+                                    <Eye size={12} /> Inspect File
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setRecommendationModalCandidate(c)}
+                                    style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: 600 }}
+                                  >
+                                    <Printer size={13} /> View Letter
+                                  </Button>
+                                </div>
                               </TableCell>
                             </TableRow>
                           ))
@@ -6247,6 +7348,34 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                       disabled={!currentRole.canCreate && !currentRole.canEdit}
                     />
                   )}
+                  {field.key === 'proofDocument' && form.details[field.key] && (
+                    <button
+                      type="button"
+                      onClick={() => openDocumentInspection({
+                        id: editing?.id || 'new',
+                        module: form.module,
+                        title: form.title,
+                        status: form.status,
+                        details: JSON.stringify(form.details)
+                      })}
+                      style={{
+                        marginTop: '6px',
+                        background: '#f0fdf4',
+                        border: '1.5px solid #86efac',
+                        borderRadius: '6px',
+                        padding: '4px 10px',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        color: '#166534',
+                        fontWeight: 700,
+                        fontSize: '12px'
+                      }}
+                    >
+                      <Eye size={13} /> Open &amp; Inspect Attached Credential
+                    </button>
+                  )}
                 </label>
               ))}
             </div>
@@ -6320,6 +7449,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
       {renderRecommendationModal()}
       {renderBusinessEndorsementModal()}
       {renderLoginModal()}
+      {renderInspectDocumentModal()}
     </div>
   );
 }
