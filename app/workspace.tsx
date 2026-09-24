@@ -137,8 +137,8 @@ const ROLES: RoleDef[] = [
     canLink: true,
     canManageData: true,
     canAccessRestricted: true,
-    primaryModules: ['agreements', 'governance', 'transparency', 'monitoring', 'benefits'],
-    description: 'Full administrative rights to coordinate multi-stakeholder consultations, draft resolutions, and manage all 14 working group records.'
+    primaryModules: ['agreements', 'land', 'employment', 'workforce', 'procurement', 'suppliers', 'skills', 'environment', 'infrastructure', 'benefits', 'grievances', 'transparency', 'monitoring', 'governance'],
+    description: 'Full administrative rights across all 14 Putu Mining Working Group modules, multi-stakeholder consultations, and system governance.'
   },
   {
     id: 'ggba',
@@ -165,6 +165,19 @@ const ROLES: RoleDef[] = [
     canAccessRestricted: false,
     primaryModules: ['environment', 'infrastructure', 'skills', 'procurement', 'monitoring'],
     description: 'Engineering, geotechnical, economic modeling, and environmental technical reviews without in-county political control.'
+  },
+  {
+    id: 'chamber',
+    name: 'Grand Gedeh Chamber of Commerce Delegate',
+    badge: 'Local Business Desk',
+    type: 'community',
+    canCreate: true,
+    canEdit: true,
+    canLink: true,
+    canManageData: false,
+    canAccessRestricted: false,
+    primaryModules: ['procurement', 'suppliers', 'skills', 'agreements'],
+    description: 'Vetting and advocating for 51% Grand Gedean enterprises, monitoring concession procurement tenders, and local content quotas under Section 13.'
   },
   {
     id: 'landowner',
@@ -313,6 +326,11 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
   // Shell UI & RBAC State
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [currentRole, setCurrentRole] = useState<RoleDef>(ROLES[0]);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
+  const [loginRoleId, setLoginRoleId] = useState<string>('emissary');
+  const [loginPasscode, setLoginPasscode] = useState<string>('ggcdc2026');
+  const [loginError, setLoginError] = useState<string>('');
   
   // Tool: Workforce Matcher & Talent Desk
   const [matcherTrade, setMatcherTrade] = useState('All');
@@ -499,6 +517,73 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
   // Active module meta
   const currentModule = modules.find(m => m.id === activeModuleId) || modules[0];
   const formModule = modules.find(m => m.id === form.module) || modules[0];
+
+  // Authorized modules according to RBAC role
+  const authorizedModules = useMemo(() => {
+    if (currentRole.type === 'admin') return modules;
+    return modules.filter(m => currentRole.primaryModules.includes(m.id));
+  }, [currentRole]);
+
+  // Session check on initial load
+  useEffect(() => {
+    try {
+      const savedRoleId = sessionStorage.getItem('ggcdc_auth_role');
+      if (savedRoleId) {
+        const found = ROLES.find(r => r.id === savedRoleId);
+        if (found) {
+          setCurrentRole(found);
+          setIsAuthenticated(true);
+        }
+      }
+    } catch {}
+  }, []);
+
+  // Enter Workspace handler
+  const handleEnterWorkspaceClick = () => {
+    if (isAuthenticated) {
+      setViewMode('workspace');
+      setActiveTab('dashboard');
+    } else {
+      setShowLoginModal(true);
+    }
+  };
+
+  // Submit Login
+  const handleLoginSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const selected = ROLES.find(r => r.id === loginRoleId) || ROLES[0];
+    if (loginPasscode.trim() === '' && selected.type !== 'observer') {
+      setLoginError('Please enter your council delegation passkey (demo: ggcdc2026).');
+      return;
+    }
+    setLoginError('');
+    setCurrentRole(selected);
+    setIsAuthenticated(true);
+    try {
+      sessionStorage.setItem('ggcdc_auth_role', selected.id);
+    } catch {}
+    setShowLoginModal(false);
+    setViewMode('workspace');
+    setActiveTab('dashboard');
+    if (!selected.primaryModules.includes(activeModuleId)) {
+      setActiveModuleId(selected.primaryModules[0] || 'agreements');
+    }
+    setFeedback(`Authenticated as ${selected.name} (${selected.badge}). Assigned ${selected.primaryModules.length} working group modules.`);
+    setTimeout(() => setFeedback(''), 6000);
+  };
+
+  // Log Out
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    try {
+      sessionStorage.removeItem('ggcdc_auth_role');
+    } catch {}
+    setViewMode('public');
+    setPublicTab('home');
+    setMobileMenuOpen(false);
+    setFeedback('You have been securely logged out of the Council Workspace.');
+    setTimeout(() => setFeedback(''), 5000);
+  };
 
   // Open modal for new record (RBAC checked)
   const handleOpenNew = (defaultModule?: string) => {
@@ -2157,7 +2242,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
             Explore public council monitoring, customary rights documentation, environmental readings, and workforce pipelines across the 14 operational sectors.
           </p>
         </div>
-        <Button className="primary" onClick={() => { setViewMode('workspace'); setActiveTab('putu-group'); }}>
+        <Button className="primary" onClick={handleEnterWorkspaceClick}>
           <LayoutDashboard size={16} /> Enter Council Workspace
         </Button>
       </div>
@@ -3994,6 +4079,105 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
   );
 
   // ----------------------------------------------------------------------
+  // COUNCIL DELEGATE AUTHENTICATION MODAL
+  // ----------------------------------------------------------------------
+  const renderLoginModal = () => (
+    <Dialog open={showLoginModal} onOpenChange={setShowLoginModal}>
+      <DialogContent className="editor" style={{ maxWidth: '680px', width: '95vw', padding: '28px', maxHeight: '90vh', overflowY: 'auto' }}>
+        <DialogHeader>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '8px' }}>
+            <img
+              src={GRAND_GEDEH_FLAG_DATA_URI}
+              alt="Grand Gedeh Flag"
+              style={{ height: '36px', width: '60px', borderRadius: '4px', border: '1px solid #14493e30', objectFit: 'cover' }}
+            />
+            <div>
+              <DialogTitle style={{ fontFamily: 'Georgia, serif', fontSize: '20px', color: '#10352f', margin: 0 }}>
+                Council Delegate Authentication
+              </DialogTitle>
+              <div style={{ fontSize: '12px', color: '#688075', marginTop: '2px' }}>
+                Grand Gedeh Citizens Development Council • Secure Workspace Access
+              </div>
+            </div>
+          </div>
+        </DialogHeader>
+
+        <p style={{ fontSize: '13px', color: '#4a6258', margin: '4px 0 16px', lineHeight: 1.5 }}>
+          Select your accredited council delegation pillar to activate your personalized workspace with assigned working groups and voting credentials:
+        </p>
+
+        {/* Roles List */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '10px', maxHeight: '320px', overflowY: 'auto', paddingRight: '4px', marginBottom: '16px' }}>
+          {ROLES.map((r) => {
+            const isSel = loginRoleId === r.id;
+            return (
+              <div
+                key={r.id}
+                className={`delegateCard ${isSel ? 'selected' : ''}`}
+                onClick={() => setLoginRoleId(r.id)}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+                  <strong style={{ fontSize: '13px', color: isSel ? '#10352f' : '#284c40' }}>{r.name}</strong>
+                  <span className={`rbacTag ${r.type}`}>{r.badge}</span>
+                </div>
+                <div style={{ fontSize: '12px', color: '#5f756c', lineHeight: 1.4, margin: '2px 0' }}>
+                  {r.description}
+                </div>
+                <div style={{ fontSize: '11px', color: isSel ? '#135e4b' : '#88a096', fontWeight: 600, marginTop: 'auto' }}>
+                  {r.type === 'admin' ? '✓ Full Access to All 14 Modules' : `✓ ${r.primaryModules.length} Assigned Modules`}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Passkey Input */}
+        <div style={{ background: '#f6f9f7', border: '1px solid #dce5e0', borderRadius: '8px', padding: '14px 16px', marginBottom: '16px' }}>
+          <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#284c40', marginBottom: '6px' }}>
+            Accredited Delegate Passkey / Access PIN:
+          </label>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <Input
+              type="password"
+              value={loginPasscode}
+              onChange={(e) => setLoginPasscode(e.target.value)}
+              placeholder="Enter delegation passkey"
+              style={{ flex: 1, background: '#fff' }}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleLoginSubmit(); }}
+            />
+            <Button
+              variant="outline"
+              type="button"
+              onClick={() => setLoginPasscode('ggcdc2026')}
+              style={{ fontSize: '11px', color: '#688075', whiteSpace: 'nowrap' }}
+            >
+              Fill Demo PIN
+            </Button>
+          </div>
+          <div style={{ fontSize: '11px', color: '#7c968c', marginTop: '6px' }}>
+            Accreditation passkey issued by the GGCDC County Secretariat (Default demo: <code style={{ color: '#135e4b', fontWeight: 'bold' }}>ggcdc2026</code>).
+          </div>
+          {loginError && (
+            <div style={{ color: '#b42318', fontSize: '12px', fontWeight: 600, marginTop: '6px' }}>
+              {loginError}
+            </div>
+          )}
+        </div>
+
+        {/* Action Buttons */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+          <Button variant="outline" onClick={() => setShowLoginModal(false)}>
+            Cancel
+          </Button>
+          <Button className="primary" onClick={() => handleLoginSubmit()}>
+            <ShieldCheck size={16} /> Authenticate &amp; Open Workspace
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+
+  // ----------------------------------------------------------------------
   // SCENARIO 1: PUBLIC CIVIC PORTAL (FULL-WIDTH, STRICTLY NO INTERNAL SIDEBAR)
   // ----------------------------------------------------------------------
   if (viewMode === 'public') {
@@ -4061,14 +4245,35 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
           </nav>
 
           <div className="publicNavActions">
-            {/* Primary Action to Enter Internal Workspace */}
-            <Button
-              className="primary"
-              onClick={() => { setViewMode('workspace'); setActiveTab('dashboard'); }}
-              style={{ height: '38px', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}
-            >
-              <LayoutDashboard size={15} /> Enter Council Workspace
-            </Button>
+            {/* Primary Action to Enter Internal Workspace or Logout */}
+            {isAuthenticated ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Button
+                  className="primary"
+                  onClick={handleEnterWorkspaceClick}
+                  style={{ height: '38px', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <LayoutDashboard size={15} /> Open Workspace ({currentRole.badge})
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleLogout}
+                  style={{ height: '38px', fontSize: '12px', fontWeight: 600, color: '#b42318', borderColor: '#fecdca', background: '#fef3f2', display: 'flex', alignItems: 'center', gap: '5px' }}
+                  title="Log out of Council Workspace"
+                >
+                  <LogOut size={14} /> Log Out
+                </Button>
+              </div>
+            ) : (
+              <Button
+                className="primary"
+                onClick={handleEnterWorkspaceClick}
+                style={{ height: '38px', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <LayoutDashboard size={15} /> Enter Council Workspace
+              </Button>
+            )}
 
             <button
               className="publicMobileToggle"
@@ -4091,9 +4296,20 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
             <button className={`mobileLink ${publicTab === 'grievance' ? 'chosen' : ''}`} onClick={() => { setPublicTab('grievance'); setPublicMobileNav(false); }}>Public Grievance Desk</button>
             <button className={`mobileLink ${publicTab === 'workforce' ? 'chosen' : ''}`} onClick={() => { setPublicTab('workforce'); setPublicMobileNav(false); }}>Workforce Talent Pool</button>
             <button className={`mobileLink ${publicTab === 'businesses' ? 'chosen' : ''}`} onClick={() => { setPublicTab('businesses'); setPublicMobileNav(false); }}>51% Local Businesses</button>
-            <Button className="primary" style={{ width: '100%', marginTop: '10px' }} onClick={() => { setViewMode('workspace'); setActiveTab('dashboard'); setPublicMobileNav(false); }}>
-              <LayoutDashboard size={15} /> Enter Council Workspace
-            </Button>
+            {isAuthenticated ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
+                <Button className="primary" style={{ width: '100%' }} onClick={() => { handleEnterWorkspaceClick(); setPublicMobileNav(false); }}>
+                  <LayoutDashboard size={15} /> Open Workspace ({currentRole.badge})
+                </Button>
+                <Button variant="outline" style={{ width: '100%', color: '#b42318', borderColor: '#fecdca' }} onClick={() => { handleLogout(); setPublicMobileNav(false); }}>
+                  <LogOut size={15} /> Log Out of Council
+                </Button>
+              </div>
+            ) : (
+              <Button className="primary" style={{ width: '100%', marginTop: '10px' }} onClick={() => { handleEnterWorkspaceClick(); setPublicMobileNav(false); }}>
+                <LayoutDashboard size={15} /> Enter Council Workspace
+              </Button>
+            )}
           </div>
         )}
 
@@ -4145,7 +4361,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                     <div className="heroCtas">
                       <Button
                         className="primary"
-                        onClick={() => { setViewMode('workspace'); setActiveTab('dashboard'); }}
+                        onClick={handleEnterWorkspaceClick}
                         style={{ height: '46px', padding: '0 24px', fontSize: '15px', fontWeight: 700 }}
                       >
                         <LayoutDashboard size={18} /> Enter Council Command Center
@@ -4302,7 +4518,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                       Fourteen interconnected operational areas tracking commitments, safeguards, and citizen benefits.
                     </p>
                   </div>
-                  <Button className="primary" onClick={() => { setViewMode('workspace'); setActiveTab('dashboard'); }}>
+                  <Button className="primary" onClick={handleEnterWorkspaceClick}>
                     Enter Council Workspace ({records.length} records)
                   </Button>
                 </div>
@@ -4392,7 +4608,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                   <li><button onClick={() => setPublicTab('workforce')} style={{ background: 'none', border: 'none', color: '#cbdcd4', cursor: 'pointer', padding: 0, textAlign: 'left', font: 'inherit' }}>Workforce Talent Matcher</button></li>
                   <li><button onClick={() => setPublicTab('businesses')} style={{ background: 'none', border: 'none', color: '#cbdcd4', cursor: 'pointer', padding: 0, textAlign: 'left', font: 'inherit' }}>51% Local Contractor Registry</button></li>
                   <li><button onClick={() => setPublicTab('roadmap')} style={{ background: 'none', border: 'none', color: '#cbdcd4', cursor: 'pointer', padding: 0, textAlign: 'left', font: 'inherit' }}>5-Phase Formation Roadmap</button></li>
-                  <li><button onClick={() => { setViewMode('workspace'); setActiveTab('dashboard'); }} style={{ background: 'none', border: 'none', color: '#f3d999', cursor: 'pointer', padding: 0, textAlign: 'left', fontWeight: 'bold', font: 'inherit' }}>Council Member Login →</button></li>
+                  <li><button onClick={handleEnterWorkspaceClick} style={{ background: 'none', border: 'none', color: '#f3d999', cursor: 'pointer', padding: 0, textAlign: 'left', fontWeight: 'bold', font: 'inherit' }}>Council Member Login →</button></li>
                 </ul>
               </div>
             </div>
@@ -4404,6 +4620,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
         </footer>
         {renderRecommendationModal()}
         {renderBusinessEndorsementModal()}
+        {renderLoginModal()}
       </div>
     );
   }
@@ -4485,26 +4702,35 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
             12 Stakeholder Pillars
           </button>
 
-          <button
-            className={`nav ${activeTab === 'tools' ? 'chosen' : ''}`}
-            onClick={() => { setActiveTab('tools'); setMobileMenuOpen(false); }}
-          >
-            <Sparkles size={18} />
-            Specialized Tools
-          </button>
+          {/* Specialized Tools: ONLY for Admin / Secretariat */}
+          {currentRole.canManageData && (
+            <button
+              className={`nav ${activeTab === 'tools' ? 'chosen' : ''}`}
+              onClick={() => { setActiveTab('tools'); setMobileMenuOpen(false); }}
+            >
+              <Sparkles size={18} />
+              Specialized Tools & Backup
+            </button>
+          )}
 
-          {/* Putu Working Group 14 Modules */}
-          <p className="sideLabel groupLabel">PUTU MINING WORKING GROUP</p>
-          {modules.map((m) => {
+          {/* Putu Working Group Assigned Modules (Filtered by Role) */}
+          <div style={{ padding: '0 12px', marginTop: '22px', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <p className="sideLabel" style={{ margin: 0, padding: 0 }}>
+              {currentRole.type === 'admin' ? 'PUTU WORKING GROUP (ALL 14)' : `${currentRole.badge.toUpperCase()} WORKING GROUPS`}
+            </p>
+            <span style={{ fontSize: '11px', color: '#d5ae59', fontWeight: 'bold' }}>
+              {authorizedModules.length} of 14
+            </span>
+          </div>
+
+          {authorizedModules.map((m) => {
             const Icon = moduleIcons[m.id] || FileText;
             const isSelected = activeTab === 'putu-group' && activeModuleId === m.id;
-            const isPrimary = currentRole.primaryModules.includes(m.id);
 
             return (
               <button
                 key={m.id}
                 className={`nav ${isSelected ? 'chosen' : ''}`}
-                style={isPrimary ? { borderLeft: '3px solid #d5ae59', paddingLeft: '9px' } : {}}
                 onClick={() => {
                   setActiveTab('putu-group');
                   setActiveModuleId(m.id);
@@ -4521,15 +4747,23 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
           })}
         </div>
 
-        {/* Sidebar Footer with Role Info */}
+        {/* Sidebar Footer with Role Info & Official Logout Button */}
         <div className="sideFoot">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
             <span style={{ color: '#d5ae59', fontWeight: 'bold' }}>{currentRole.badge}</span>
             <span className={`rbacTag ${currentRole.type}`}>{currentRole.type}</span>
           </div>
-          <span style={{ fontSize: '11px', display: 'block', color: '#a0c4b6', lineHeight: 1.4 }}>
-            {currentRole.canCreate ? 'Full Write & Audit Access' : 'Read-Only Observer Access'}
+          <span style={{ fontSize: '11px', display: 'block', color: '#a0c4b6', lineHeight: 1.4, marginBottom: '12px' }}>
+            {currentRole.canCreate ? 'Authorized Contributor' : 'Read-Only Observer'} · {authorizedModules.length} Modules
           </span>
+
+          <button
+            onClick={handleLogout}
+            className="logoutBtn"
+            title="Terminate active council session and return to public portal"
+          >
+            <LogOut size={15} /> Log Out of Council
+          </button>
         </div>
       </aside>
 
@@ -4565,7 +4799,12 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                 value={currentRole.id}
                 onChange={(e) => {
                   const r = ROLES.find(item => item.id === e.target.value);
-                  if (r) setCurrentRole(r);
+                  if (r) {
+                    setCurrentRole(r);
+                    if (!r.primaryModules.includes(activeModuleId) && r.type !== 'admin') {
+                      setActiveModuleId(r.primaryModules[0] || 'agreements');
+                    }
+                  }
                 }}
                 style={{
                   height: '34px',
@@ -4587,6 +4826,27 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
             <div className="avatar" title={`Current persona: ${currentRole.name}`}>
               {currentRole.name[0]}
             </div>
+
+            {/* Topbar Logout Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleLogout}
+              style={{
+                fontSize: '12px',
+                height: '32px',
+                color: '#b42318',
+                borderColor: '#fecdca',
+                background: '#fef3f2',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                fontWeight: 600
+              }}
+              title="Terminate council session"
+            >
+              <LogOut size={14} /> Log Out
+            </Button>
           </div>
         </header>
 
@@ -5275,7 +5535,29 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
           )}
 
           {/* RECORDS TABLE & CRUD SECTION (Visible in Dashboard & Putu Working Group tabs) */}
-          {(activeTab === 'dashboard' || activeTab === 'putu-group') && (
+          {activeTab === 'putu-group' && currentRole.type !== 'admin' && !currentRole.primaryModules.includes(activeModuleId) ? (
+            <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #dce5e0', padding: '56px 32px', textAlign: 'center', maxWidth: '640px', margin: '40px auto' }}>
+              <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#fef3f2', color: '#b42318', display: 'grid', placeItems: 'center', margin: '0 auto 16px' }}>
+                <Lock size={32} />
+              </div>
+              <h2 style={{ fontFamily: 'Georgia, serif', color: '#10352f', fontSize: '22px', margin: '0 0 10px' }}>
+                Working Group Access Restricted
+              </h2>
+              <p style={{ color: '#5a7167', fontSize: '14px', lineHeight: 1.6, margin: '0 0 24px' }}>
+                The <strong>{currentModule.name}</strong> module is restricted to delegates assigned to that standing committee. Your current accredited delegation is <strong>{currentRole.name}</strong> ({currentRole.badge}).
+              </p>
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                {authorizedModules[0] && (
+                  <Button className="primary" onClick={() => setActiveModuleId(authorizedModules[0].id)}>
+                    Go to Assigned: {authorizedModules[0].short}
+                  </Button>
+                )}
+                <Button variant="outline" onClick={() => setActiveTab('dashboard')}>
+                  Return to Command Center
+                </Button>
+              </div>
+            </div>
+          ) : (activeTab === 'dashboard' || activeTab === 'putu-group') && (
             <section className="records" style={{ marginTop: '28px' }}>
               <div className="recordHead">
                 <div>
@@ -5586,6 +5868,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
       </Dialog>
       {renderRecommendationModal()}
       {renderBusinessEndorsementModal()}
+      {renderLoginModal()}
     </div>
   );
 }

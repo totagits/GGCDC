@@ -82,6 +82,13 @@
 .roleNotice{display:flex;align-items:center;justify-content:space-between;background:#f0f5f2;border:1px solid #d3e2d9;border-radius:8px;padding:12px 18px;margin-bottom:20px;font-size:13px;color:#284c40}
 .roleNotice strong{color:#11382f}
 
+/* DELEGATE LOGIN & LOGOUT STYLES */
+.delegateCard{border:1.5px solid #dce5e0;border-radius:10px;padding:12px 14px;cursor:pointer;transition:all .15s ease;background:#fff;text-align:left;display:flex;flex-direction:column;gap:4px}
+.delegateCard:hover{border-color:#14493e;transform:translateY(-1px);box-shadow:0 4px 12px rgba(20,73,62,.08)}
+.delegateCard.selected{border-color:#14493e;background:#f0f7f4;box-shadow:0 0 0 1px #14493e}
+.logoutBtn{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:9px 12px;border-radius:7px;border:1px solid #e74c3c60;background:#c0392b25;color:#ff9999;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s ease}
+.logoutBtn:hover{background:#c0392be0;color:#fff;border-color:#c0392b}
+
 .publicMobileToggle{display:none;background:none;border:1px solid #c8d6cf;padding:6px;border-radius:6px;color:#14493e;cursor:pointer}
 .publicMobileDrawer{background:#fff;border-bottom:1px solid #dfe7e2;padding:16px 24px;display:flex;flex-direction:column;gap:8px;box-shadow:0 8px 24px #10352f15}
 .publicMobileDrawer .mobileLink{background:none;border:none;text-align:left;padding:10px 12px;font-size:15px;font-weight:600;color:#284c40;border-radius:6px;cursor:pointer}
