@@ -398,6 +398,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
   });
   const [businessSuccessId, setBusinessSuccessId] = useState<string | null>(null);
   const [isUploadingBusinessProof, setIsUploadingBusinessProof] = useState(false);
+  const [businessProofDragActive, setBusinessProofDragActive] = useState(false);
   const businessFileInputRef = useRef<HTMLInputElement>(null);
 
   // Command Center: Dashboard Sub-View & Approvals Queue Filter
@@ -437,7 +438,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
     try {
       const res = await fetch('/api/records', { cache: 'no-store' });
       if (res.ok) {
-        const data = await res.json();
+        const data: any = await res.json();
         if (data.records && Array.isArray(data.records) && data.records.length > 0) {
           setRecords(data.records);
           setLinks(data.links || []);
@@ -4638,7 +4639,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
           {publicTab === 'putu-group' && renderPublicPutuGroupContent()}
 
           {/* TAB 6: GRIEVANCE DESK */}
-          {publicTab === 'grievance' && renderPublicGrievanceContent()}
+          {publicTab === 'grievance' && renderPublicGrievanceSection()}
 
           {/* TAB 7: WORKFORCE MATCHER */}
           {publicTab === 'workforce' && renderPublicWorkforceContent()}
