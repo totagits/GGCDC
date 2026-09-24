@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process';
-import { copyFileSync, writeFileSync, existsSync } from 'node:fs';
+import { copyFileSync, writeFileSync, existsSync, cpSync } from 'node:fs';
 import path from 'node:path';
 
 console.log('==> Building static bundle for GitHub Pages...');
@@ -16,6 +16,9 @@ if (existsSync('public/favicon.png')) {
 }
 if (existsSync('public/logo.png')) {
   copyFileSync('public/logo.png', 'dist-pages/logo.png');
+}
+if (existsSync('public/images')) {
+  cpSync('public/images', 'dist-pages/images', { recursive: true });
 }
 
 console.log('==> Pushing to origin gh-pages...');

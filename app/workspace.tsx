@@ -220,71 +220,47 @@ const ROLES: RoleDef[] = [
   }
 ];
 
-// 8 Curated Photos for Hero Carousel
+// 5 Authentic Local Photos for Hero Carousel (Awaiting 3 additional local pictures from user)
 const HERO_SLIDES = [
   {
     id: 1,
-    tag: 'PUTU MOUNTAIN RANGE',
+    tag: 'PUTU MOUNTAIN RANGE • MINERAL WEALTH',
     title: 'Putu Mountain Iron Ore Ridge',
-    caption: 'The towering, mineral-rich crest of Putu Mountain containing multi-billion tons of iron ore reserves in Grand Gedeh.',
-    imageUrl: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80',
-    alt: 'Putu Mountain Iron Ore Ridge in Grand Gedeh'
+    caption: 'The authentic towering ridge and mineral reserves of Putu Mountain in Grand Gedeh County, showing natural forest cover and resource exploration cuts.',
+    imageUrl: './images/putu_mountain_ridge.png',
+    alt: 'Putu Mountain Iron Ore Ridge in Grand Gedeh County'
   },
   {
     id: 2,
-    tag: 'LOCAL EMPLOYMENT & LABOR',
-    title: 'Grand Gedean Mine Workers & Artisans',
-    caption: 'Skilled local heavy equipment operators, drillers, and certified technicians leading site preparation and mining works.',
-    imageUrl: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=1200&q=80',
-    alt: 'Grand Gedean Mine Workers and Engineers'
+    tag: 'AGRARIAN COOPERATIVES • LOCAL CONTENT',
+    title: 'Grand Gedeh Agrarian Farmers & Rice Harvest',
+    caption: 'Bona fide county farmers and women harvesting golden swamp rice, demonstrating agricultural capacity to supply mine catering and county food security.',
+    imageUrl: './images/grand_gedeh_agrarian_farmers.jpg',
+    alt: 'Grand Gedean women farmers harvesting golden rice in the field'
   },
   {
     id: 3,
-    tag: 'HUMAN CAPITAL & STEM',
-    title: 'School Children & Next-Gen Education',
-    caption: 'Investing mineral development revenues directly into modernized community schools, secondary labs, and youth scholarships.',
-    imageUrl: 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=1200&q=80',
-    alt: 'Grand Gedeh School Children in modern classroom'
+    tag: 'CORRIDOR CONNECTIVITY • INFRASTRUCTURE',
+    title: 'Zwedru Corridor Highway & All-Weather Transit',
+    caption: 'Elevated view of the main corridor thoroughfare in Zwedru, highlighting essential road infrastructure needed for regional commerce and community access.',
+    imageUrl: './images/zwedru_corridor_highway.png',
+    alt: 'Corridor Highway and boulevard in Zwedru, Grand Gedeh'
   },
   {
     id: 4,
-    tag: 'COMMUNITY HEALTHCARE',
-    title: 'Modern Hospital & Maternity Clinics',
-    caption: 'Solar-powered healthcare centers, cold-chain medicine facilities, and 4x4 emergency transport across host districts.',
-    imageUrl: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=1200&q=80',
-    alt: 'Grand Gedeh Healthcare Center and Doctors'
+    tag: 'CUSTOMARY GOVERNANCE • CHIEFLY CONSENSUS',
+    title: 'Community Stakeholder & Palava Hut Assembly',
+    caption: 'Traditional chiefs, clan elders, women leaders, youth, and county stakeholders meeting to deliberate on land rights, FPIC consent, and community development.',
+    imageUrl: './images/customary_stakeholder_assembly.png',
+    alt: 'Grand Gedeh customary community stakeholders gathered in palava consultation'
   },
   {
     id: 5,
-    tag: 'CORRIDOR INFRASTRUCTURE',
-    title: 'Heavy Freight Railway with Ore Leaving',
-    caption: 'Standard-gauge heavy-haul railway carrying ore to port, equipped with multi-user commercial freight and community access.',
-    imageUrl: 'https://images.unsplash.com/photo-1474487548417-781cb71495f3?auto=format&fit=crop&w=1200&q=80',
-    alt: 'Railway carrying iron ore to port'
-  },
-  {
-    id: 6,
-    tag: 'ALL-WEATHER CONNECTIVITY',
-    title: 'Paved Asphalt Highway & Solar Lighting',
-    caption: 'Replacing impassable seasonal muddy tracks with modern dual-lane paved highways connecting Zwedru, Pennoken, and Putu.',
-    imageUrl: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=1200&q=80',
-    alt: 'Paved Highway in Grand Gedeh'
-  },
-  {
-    id: 7,
-    tag: 'AGRARIAN COOPERATIVES',
-    title: 'Grand Gedeh Farmers & Food Security',
-    caption: 'Local farming cooperatives producing fresh vegetables, poultry, and cassava directly contracted to mining catering services.',
-    imageUrl: 'https://images.unsplash.com/photo-1592982537447-7440770cbfc9?auto=format&fit=crop&w=1200&q=80',
-    alt: 'Grand Gedeh farmers harvesting crops'
-  },
-  {
-    id: 8,
-    tag: 'CUSTOMARY GOVERNANCE',
-    title: 'Customary Land & Palava Hut Consultations',
-    caption: 'Traditional chiefs, elders, and women leaders conducting consensus assemblies safeguarding customary land and forest rights.',
-    imageUrl: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=1200&q=80',
-    alt: 'Customary consultations in Grand Gedeh'
+    tag: 'COMMUNITY BENEFITS • SOCIAL INFRASTRUCTURE',
+    title: 'Modern Community Clinics & School Infrastructure',
+    caption: 'New civic social infrastructure constructed in the county, demonstrating the tangible healthcare and educational benefits required from mineral royalties.',
+    imageUrl: './images/community_clinic_school.png',
+    alt: 'Newly constructed community health clinic and school building in Grand Gedeh'
   }
 ];
 
