@@ -1402,8 +1402,21 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
           }}
           onClick={(e) => e.stopPropagation()}
         >
+          {/* BACKGROUND GGCDC WATERMARK */}
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            opacity: 0.05,
+            pointerEvents: 'none',
+            zIndex: 0
+          }}>
+            <img src={GGCDC_LOGO_DATA_URI} alt="" style={{ width: '440px', height: '440px', objectFit: 'contain' }} />
+          </div>
+
           {/* Action buttons header (hidden when printing) */}
-          <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid #dce5e0', paddingBottom: '14px' }}>
+          <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid #dce5e0', paddingBottom: '14px', position: 'relative', zIndex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#133e36', fontWeight: 600, fontSize: '13px', fontFamily: 'sans-serif' }}>
               <ShieldCheck size={18} color="#2e7d32" />
               <span>Official GGCDC Statutory Local Procurement Endorsement Instrument</span>
@@ -1429,16 +1442,16 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
           </div>
 
           {/* OFFICIAL LETTERHEAD */}
-          <div style={{ textAlign: 'center', borderBottom: '3px double #133e36', paddingBottom: '18px', marginBottom: '22px' }}>
+          <div style={{ textAlign: 'center', borderBottom: '3px double #133e36', paddingBottom: '18px', marginBottom: '22px', position: 'relative', zIndex: 1 }}>
             <div style={{ margin: '0 auto 12px', display: 'flex', justifyContent: 'center' }}>
               <img
                 src={GGCDC_LOGO_DATA_URI}
                 alt="Grand Gedeh Citizens Development Council Official Emblem"
                 style={{
-                  height: '76px',
-                  width: '76px',
+                  height: '88px',
+                  width: '88px',
                   objectFit: 'contain',
-                  filter: 'drop-shadow(0 4px 12px rgba(19, 62, 54, 0.2))'
+                  filter: 'drop-shadow(0 4px 14px rgba(19, 62, 54, 0.22))'
                 }}
               />
             </div>
@@ -1744,8 +1757,20 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
             </div>
           </div>
 
+          {/* OFFICIAL GGCDC SEAL STAMP */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginTop: '18px', position: 'relative', zIndex: 1 }}>
+            <img
+              src={GGCDC_LOGO_DATA_URI}
+              alt="Official GGCDC Seal"
+              style={{ width: '84px', height: '84px', objectFit: 'contain', filter: 'drop-shadow(0 4px 12px rgba(19, 62, 54, 0.25))' }}
+            />
+            <span style={{ fontSize: '10px', fontWeight: 800, color: '#133e36', letterSpacing: '1px', marginTop: '4px', textTransform: 'uppercase' }}>
+              Official Seal of Procurement Certification • GGCDC
+            </span>
+          </div>
+
           {/* FOOTER WATERMARK */}
-          <div style={{ textAlign: 'center', marginTop: '24px', fontSize: '10px', color: '#94a39b', fontFamily: 'sans-serif' }}>
+          <div style={{ textAlign: 'center', marginTop: '16px', fontSize: '10px', color: '#94a39b', fontFamily: 'sans-serif', position: 'relative', zIndex: 1 }}>
             Grand Gedeh Citizens Development Council • Official Procurement Certificate • Section 13 Quota Enforcement Hotline: +231-776-GGCDC-PROCURE • procurement@ggcdc.org.lr
           </div>
         </div>
@@ -1797,11 +1822,24 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
           }}
           onClick={(e) => e.stopPropagation()}
         >
+          {/* BACKGROUND GGCDC WATERMARK */}
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            opacity: 0.05,
+            pointerEvents: 'none',
+            zIndex: 0
+          }}>
+            <img src={GGCDC_LOGO_DATA_URI} alt="" style={{ width: '440px', height: '440px', objectFit: 'contain' }} />
+          </div>
+
           {/* Action buttons header (hidden when printing) */}
-          <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid #dce5e0', paddingBottom: '14px' }}>
+          <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid #dce5e0', paddingBottom: '14px', position: 'relative', zIndex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#133e36', fontWeight: 600, fontSize: '13px', fontFamily: 'sans-serif' }}>
               <ShieldCheck size={18} color="#2e7d32" />
-              <span>Official GGCDC Legal & Technical Endorsement Instrument</span>
+              <span>Official GGCDC Legal &amp; Technical Endorsement Instrument</span>
             </div>
             <div style={{ display: 'flex', gap: '10px' }}>
               <Button
@@ -1824,16 +1862,16 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
           </div>
 
           {/* OFFICIAL LETTERHEAD */}
-          <div style={{ textAlign: 'center', borderBottom: '3px double #133e36', paddingBottom: '18px', marginBottom: '22px' }}>
+          <div style={{ textAlign: 'center', borderBottom: '3px double #133e36', paddingBottom: '18px', marginBottom: '22px', position: 'relative', zIndex: 1 }}>
             <div style={{ margin: '0 auto 12px', display: 'flex', justifyContent: 'center' }}>
               <img
                 src={GGCDC_LOGO_DATA_URI}
                 alt="Grand Gedeh Citizens Development Council Official Emblem"
                 style={{
-                  height: '76px',
-                  width: '76px',
+                  height: '88px',
+                  width: '88px',
                   objectFit: 'contain',
-                  filter: 'drop-shadow(0 4px 12px rgba(19, 62, 54, 0.2))'
+                  filter: 'drop-shadow(0 4px 14px rgba(19, 62, 54, 0.22))'
                 }}
               />
             </div>
@@ -2140,8 +2178,20 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
             </div>
           </div>
 
+          {/* OFFICIAL GGCDC SEAL STAMP */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginTop: '18px', position: 'relative', zIndex: 1 }}>
+            <img
+              src={GGCDC_LOGO_DATA_URI}
+              alt="Official GGCDC Seal"
+              style={{ width: '84px', height: '84px', objectFit: 'contain', filter: 'drop-shadow(0 4px 12px rgba(19, 62, 54, 0.25))' }}
+            />
+            <span style={{ fontSize: '10px', fontWeight: 800, color: '#133e36', letterSpacing: '1px', marginTop: '4px', textTransform: 'uppercase' }}>
+              Official Seal of Recommendation &amp; Endorsement • GGCDC
+            </span>
+          </div>
+
           {/* FOOTER WATERMARK */}
-          <div style={{ textAlign: 'center', marginTop: '24px', fontSize: '10px', color: '#94a39b', fontFamily: 'sans-serif' }}>
+          <div style={{ textAlign: 'center', marginTop: '16px', fontSize: '10px', color: '#94a39b', fontFamily: 'sans-serif', position: 'relative', zIndex: 1 }}>
             Grand Gedeh Citizens Development Council • Official Seal of Attestation • Verification Hotline: +231-770-GGCDC-TALENT • talent@ggcdc.org.lr
           </div>
         </div>
@@ -2287,12 +2337,17 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                 width: '38px',
                 height: '38px',
                 borderRadius: '8px',
-                background: 'rgba(255,255,255,0.12)',
+                background: 'rgba(255,255,255,0.08)',
                 display: 'grid',
                 placeItems: 'center',
-                border: '1px solid rgba(255,255,255,0.2)'
+                border: '1px solid rgba(255,255,255,0.2)',
+                padding: '2px'
               }}>
-                <FileSearch size={20} color="#a3cfbb" />
+                <img
+                  src={GGCDC_LOGO_DATA_URI}
+                  alt="GGCDC Official Emblem"
+                  style={{ width: '38px', height: '38px', objectFit: 'contain' }}
+                />
               </div>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -2307,6 +2362,9 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                     borderRadius: '4px'
                   }}>
                     {isWorkforce ? 'Workforce Credential Audit' : 'Local Enterprise Audit'}
+                  </span>
+                  <span style={{ fontSize: '11px', background: 'rgba(255,255,255,0.15)', color: '#dcfce7', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                    GGCDC Official Audit Desk
                   </span>
                   <span style={{ fontSize: '12px', fontFamily: 'monospace', color: '#a3cfbb', fontWeight: 700 }}>
                     {trackingCode}
@@ -2636,22 +2694,29 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                             Executive Directorate · Office of the Chief Executive Officer
                           </h3>
                         </div>
-                        <div style={{
-                          width: '56px',
-                          height: '56px',
-                          borderRadius: '8px',
-                          background: '#eff6ff',
-                          border: '2px solid #bfdbfe',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: '#1d4ed8',
-                          fontWeight: 900,
-                          fontSize: '13px'
-                        }}>
-                          <span>UNW</span>
-                          <span style={{ fontSize: '8px', fontWeight: 700 }}>CEO EXEC</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <img
+                            src={GGCDC_LOGO_DATA_URI}
+                            alt="GGCDC Official Emblem"
+                            style={{ width: '52px', height: '52px', objectFit: 'contain', filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.18))' }}
+                          />
+                          <div style={{
+                            width: '56px',
+                            height: '56px',
+                            borderRadius: '8px',
+                            background: '#eff6ff',
+                            border: '2px solid #bfdbfe',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#1d4ed8',
+                            fontWeight: 900,
+                            fontSize: '13px'
+                          }}>
+                            <span>UNW</span>
+                            <span style={{ fontSize: '8px', fontWeight: 700 }}>CEO EXEC</span>
+                          </div>
                         </div>
                       </div>
 
@@ -2709,25 +2774,45 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                           <span style={{ color: '#64748b' }}>UNW Concession &amp; Industrial Operations</span>
                         </div>
 
-                        <div style={{
-                          width: '74px',
-                          height: '74px',
-                          borderRadius: '50%',
-                          border: '3px double #1e3a8a',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          textAlign: 'center',
-                          color: '#1e3a8a',
-                          fontSize: '8px',
-                          fontWeight: 800,
-                          background: 'rgba(30, 58, 138, 0.04)',
-                          transform: 'rotate(-6deg)'
-                        }}>
-                          <span>★ UNW ★</span>
-                          <strong style={{ fontSize: '9px' }}>OFFICIAL</strong>
-                          <span>CEO SEAL</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                          <div style={{
+                            width: '74px',
+                            height: '74px',
+                            borderRadius: '50%',
+                            border: '3px double #1e3a8a',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            textAlign: 'center',
+                            color: '#1e3a8a',
+                            fontSize: '8px',
+                            fontWeight: 800,
+                            background: 'rgba(30, 58, 138, 0.04)',
+                            transform: 'rotate(-6deg)'
+                          }}>
+                            <span>★ UNW ★</span>
+                            <strong style={{ fontSize: '9px' }}>OFFICIAL</strong>
+                            <span>CEO SEAL</span>
+                          </div>
+
+                          <div style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            textAlign: 'center',
+                            background: '#f0fdf4',
+                            border: '1.5px solid #86efac',
+                            borderRadius: '8px',
+                            padding: '6px 10px',
+                            boxShadow: '0 2px 6px rgba(0,0,0,0.06)'
+                          }}>
+                            <img src={GGCDC_LOGO_DATA_URI} alt="GGCDC Verification Seal" style={{ width: '38px', height: '38px', objectFit: 'contain' }} />
+                            <span style={{ fontSize: '8px', fontWeight: 800, color: '#166534', marginTop: '2px' }}>
+                              GGCDC VERIFIED
+                            </span>
+                          </div>
                         </div>
 
                         <div style={{ textAlign: 'right' }}>
@@ -2757,21 +2842,26 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '14px', borderBottom: '2px solid #1b5e20', paddingBottom: '14px', marginBottom: '18px' }}>
                         <img 
-                          src={GRAND_GEDEH_FLAG_DATA_URI} 
-                          alt="County Flag" 
-                          style={{ width: '60px', height: '36px', borderRadius: '4px', border: '1px solid #ccc' }}
+                          src={GGCDC_LOGO_DATA_URI} 
+                          alt="Grand Gedeh Citizens Development Council Official Emblem" 
+                          style={{ width: '56px', height: '56px', objectFit: 'contain', filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.18))' }}
                         />
-                        <div>
+                        <div style={{ flex: 1 }}>
                           <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1.5px', color: '#556b62', fontWeight: 800 }}>
-                            Republic of Liberia • Ministry of Transport &amp; Mines
+                            Grand Gedeh Citizens Development Council (GGCDC) • Mines Directorate
                           </div>
                           <h4 style={{ margin: '2px 0 0', fontSize: '18px', fontWeight: 800, color: '#133e36', fontFamily: 'Georgia, serif' }}>
-                            Official Concession Operator License
+                            Official Concession Operator License &amp; Credential Attestation
                           </h4>
                           <span style={{ fontSize: '11px', color: '#15803d', fontWeight: 700 }}>
-                            CLASS A HEAVY EARTHMOVING MACHINERY PERMIT
+                            CLASS A HEAVY EARTHMOVING MACHINERY PERMIT • GGCDC ACCREDITED
                           </span>
                         </div>
+                        <img 
+                          src={GRAND_GEDEH_FLAG_DATA_URI} 
+                          alt="Grand Gedeh County Flag" 
+                          style={{ width: '48px', height: '29px', borderRadius: '3px', border: '1px solid #14493e30', objectFit: 'cover' }}
+                        />
                       </div>
 
                       <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '18px', marginBottom: '18px' }}>
@@ -2787,9 +2877,13 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                           textAlign: 'center',
                           padding: '10px'
                         }}>
-                          <Users size={48} color="#133e36" />
-                          <span style={{ fontSize: '10px', fontWeight: 800, marginTop: '8px', color: '#133e36', textTransform: 'uppercase' }}>
-                            Concession Verified
+                          <img
+                            src={GGCDC_LOGO_DATA_URI}
+                            alt="GGCDC Seal"
+                            style={{ width: '52px', height: '52px', objectFit: 'contain', marginBottom: '6px', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.12))' }}
+                          />
+                          <span style={{ fontSize: '10px', fontWeight: 800, color: '#133e36', textTransform: 'uppercase' }}>
+                            GGCDC Verified
                           </span>
                           <span style={{ fontSize: '9px', color: '#15803d', fontWeight: 700 }}>
                             ✓ Bio-Clearance Pass
@@ -2830,10 +2924,17 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                         </div>
                       </div>
 
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', borderTop: '1px solid #dce5e0', paddingTop: '14px', fontSize: '11px', color: '#688075' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #dce5e0', paddingTop: '14px', fontSize: '11px', color: '#688075' }}>
                         <div>
                           <strong>Issuing Inspectorate:</strong> National Heavy Equipment Certification Board<br />
                           <strong>Status:</strong> Active &amp; Valid for Putu Iron Ore Mining Operations
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '6px', padding: '6px 12px' }}>
+                          <img src={GGCDC_LOGO_DATA_URI} alt="GGCDC Official Attestation" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
+                          <div style={{ textAlign: 'left', fontSize: '10px' }}>
+                            <strong style={{ color: '#166534', display: 'block' }}>GGCDC ATTESTED</strong>
+                            <span style={{ color: '#4b5563' }}>Section 11 Workforce Quota</span>
+                          </div>
                         </div>
                         <div style={{ textAlign: 'center' }}>
                           <div style={{ fontFamily: 'cursive, "Brush Script MT", Georgia', fontSize: '16px', color: '#133e36', fontWeight: 'bold' }}>
@@ -2858,11 +2959,15 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                       position: 'relative'
                     }}>
                       <div style={{ border: '1px solid #d4af37', padding: '24px 20px', borderRadius: '8px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
-                          <Award size={36} color="#b8860b" />
+                        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '14px', marginBottom: '8px' }}>
+                          <img
+                            src={GGCDC_LOGO_DATA_URI}
+                            alt="GGCDC TVET Council"
+                            style={{ width: '50px', height: '50px', objectFit: 'contain', filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.15))' }}
+                          />
                         </div>
                         <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '2px', color: '#785b0d', fontWeight: 800 }}>
-                          Republic of Liberia • National TVET &amp; Higher Education Board
+                          Republic of Liberia • National TVET &amp; Higher Education Board • GGCDC Accredited
                         </div>
                         <h4 style={{ margin: '4px 0 2px', fontSize: '20px', fontWeight: 800, color: '#133e36', fontFamily: 'Georgia, serif' }}>
                           {institution}
@@ -2898,8 +3003,8 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                             <span style={{ color: '#6b7280' }}>Dean of Faculty</span>
                           </div>
                           <div style={{
-                            width: '56px',
-                            height: '56px',
+                            width: '68px',
+                            height: '68px',
                             borderRadius: '50%',
                             border: '2px double #b8860b',
                             background: '#fef9e7',
@@ -2910,10 +3015,11 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                             fontSize: '7px',
                             fontWeight: 800,
                             color: '#7d6608',
-                            boxShadow: '0 2px 6px rgba(184, 134, 11, 0.2)'
+                            boxShadow: '0 2px 8px rgba(184, 134, 11, 0.25)',
+                            padding: '4px'
                           }}>
-                            ★ SEAL ★
-                            <span>ACCREDITED</span>
+                            <img src={GGCDC_LOGO_DATA_URI} alt="Seal" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
+                            <span style={{ fontSize: '6px', letterSpacing: '0.5px' }}>ACCREDITED</span>
                           </div>
                           <div>
                             <div style={{ fontFamily: 'cursive, Georgia', fontSize: '16px', color: '#133e36', fontWeight: 700 }}>
@@ -2936,19 +3042,28 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                       padding: '28px 32px',
                       boxShadow: '0 12px 36px rgba(0,0,0,0.12)'
                     }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', borderBottom: '2px solid #2e7d32', paddingBottom: '12px', marginBottom: '16px' }}>
-                        <Landmark size={32} color="#2e7d32" />
-                        <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', borderBottom: '2px solid #2e7d32', paddingBottom: '14px', marginBottom: '16px' }}>
+                        <img 
+                          src={GGCDC_LOGO_DATA_URI} 
+                          alt="Grand Gedeh Citizens Development Council Official Emblem" 
+                          style={{ width: '54px', height: '54px', objectFit: 'contain', filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.18))' }}
+                        />
+                        <div style={{ flex: 1 }}>
                           <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1.5px', color: '#556b62', fontWeight: 800 }}>
-                            Republic of Liberia • National Elections Commission &amp; Customary Authority
+                            Grand Gedeh Citizens Development Council (GGCDC) • Council of Paramount Chiefs
                           </div>
                           <h4 style={{ margin: '2px 0 0', fontSize: '18px', fontWeight: 800, color: '#133e36', fontFamily: 'Georgia, serif' }}>
                             Certificate of Customary Indigeneity &amp; Residency
                           </h4>
                           <span style={{ fontSize: '11px', color: '#15803d', fontWeight: 700 }}>
-                            HOST COMMUNITY FIRST-RIGHT APPRENTICESHIP CLEARANCE
+                            GGCDC CIVIC ENDORSEMENT • HOST COMMUNITY FIRST-RIGHT APPRENTICESHIP CLEARANCE
                           </span>
                         </div>
+                        <img 
+                          src={GRAND_GEDEH_FLAG_DATA_URI} 
+                          alt="Grand Gedeh County Flag" 
+                          style={{ width: '48px', height: '29px', borderRadius: '3px', border: '1px solid #14493e30', objectFit: 'cover' }}
+                        />
                       </div>
 
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px 18px', fontSize: '12px', marginBottom: '18px' }}>
@@ -2978,7 +3093,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                         </div>
                         <div style={{ gridColumn: 'span 2', background: '#f0fdf4', padding: '10px 14px', borderRadius: '6px', border: '1px solid #bbf7d0' }}>
                           <strong style={{ color: '#166534', display: 'block', fontSize: '11.5px', marginBottom: '2px' }}>
-                            ✓ Customary Indigeneity Attestation by Chiefs Council:
+                            ✓ Customary Indigeneity Attestation by Chiefs Council &amp; GGCDC:
                           </strong>
                           <p style={{ margin: 0, fontSize: '11px', color: '#374151', lineHeight: 1.5 }}>
                             The Council of Paramount and Clan Chiefs certifies that this candidate was born and raised in {community}, belongs to the customary landowning families of Putu, and is entitled under Article 14 of the Putu MDA to priority enrollment in concession-funded TVET programs.
@@ -2989,6 +3104,13 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #dce5e0', paddingTop: '12px', fontSize: '11px' }}>
                         <div>
                           <strong>Community Endorsement:</strong> {endorsement}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '6px', padding: '6px 12px' }}>
+                          <img src={GGCDC_LOGO_DATA_URI} alt="GGCDC Seal" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
+                          <div style={{ textAlign: 'left', fontSize: '10px' }}>
+                            <strong style={{ color: '#166534', display: 'block' }}>GGCDC CIVIC SEAL</strong>
+                            <span style={{ color: '#4b5563' }}>Indigeneity Confirmed</span>
+                          </div>
                         </div>
                         <div style={{ textAlign: 'center' }}>
                           <div style={{ fontFamily: 'cursive, Georgia', fontSize: '15px', color: '#133e36', fontWeight: 700 }}>
@@ -3010,19 +3132,28 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                       padding: '28px 32px',
                       boxShadow: '0 12px 36px rgba(0,0,0,0.12)'
                     }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', borderBottom: '2px solid #1e3a8a', paddingBottom: '12px', marginBottom: '16px' }}>
-                        <Building2 size={32} color="#1e3a8a" />
-                        <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', borderBottom: '2px solid #1e3a8a', paddingBottom: '14px', marginBottom: '16px' }}>
+                        <img 
+                          src={GGCDC_LOGO_DATA_URI} 
+                          alt="Grand Gedeh Citizens Development Council Official Emblem" 
+                          style={{ width: '54px', height: '54px', objectFit: 'contain', filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.18))' }}
+                        />
+                        <div style={{ flex: 1 }}>
                           <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1.5px', color: '#556b62', fontWeight: 800 }}>
-                            Republic of Liberia • Liberia Business Registry (LBR)
+                            Republic of Liberia • Liberia Business Registry (LBR) &amp; GGCDC Chamber
                           </div>
                           <h4 style={{ margin: '2px 0 0', fontSize: '18px', fontWeight: 800, color: '#102a43', fontFamily: 'Georgia, serif' }}>
                             Certificate of Incorporation &amp; Beneficial Ownership
                           </h4>
                           <span style={{ fontSize: '11px', color: '#1d4ed8', fontWeight: 700 }}>
-                            LOCAL CONTENT CONCESSION BIDDING PREQUALIFICATION
+                            GGCDC PREQUALIFIED • LOCAL CONTENT CONCESSION BIDDING CLEARANCE
                           </span>
                         </div>
+                        <img 
+                          src={GRAND_GEDEH_FLAG_DATA_URI} 
+                          alt="Grand Gedeh County Flag" 
+                          style={{ width: '48px', height: '29px', borderRadius: '3px', border: '1px solid #14493e30', objectFit: 'cover' }}
+                        />
                       </div>
 
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px 18px', fontSize: '12px', marginBottom: '18px' }}>
@@ -3061,8 +3192,12 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                       </div>
 
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #dce5e0', paddingTop: '12px', fontSize: '11px' }}>
-                        <div>
-                          <strong>Chamber Certification:</strong> Verified Local Contractor
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '6px', padding: '6px 12px' }}>
+                          <img src={GGCDC_LOGO_DATA_URI} alt="GGCDC Chamber Seal" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
+                          <div style={{ textAlign: 'left', fontSize: '10px' }}>
+                            <strong style={{ color: '#166534', display: 'block' }}>GGCDC CHAMBER SEAL</strong>
+                            <span style={{ color: '#4b5563' }}>Section 13 Prequalified</span>
+                          </div>
                         </div>
                         <div style={{ textAlign: 'center' }}>
                           <div style={{ fontFamily: 'cursive, Georgia', fontSize: '15px', color: '#1e3a8a', fontWeight: 700 }}>
