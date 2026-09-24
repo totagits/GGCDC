@@ -11,6 +11,12 @@ writeFileSync('dist-pages/.nojekyll', '');
 if (existsSync('public/favicon.svg')) {
   copyFileSync('public/favicon.svg', 'dist-pages/favicon.svg');
 }
+if (existsSync('public/favicon.png')) {
+  copyFileSync('public/favicon.png', 'dist-pages/favicon.png');
+}
+if (existsSync('public/logo.png')) {
+  copyFileSync('public/logo.png', 'dist-pages/logo.png');
+}
 
 console.log('==> Pushing to origin gh-pages...');
 execSync('git -C dist-pages init -b gh-pages', { stdio: 'inherit' });

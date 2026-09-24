@@ -57,6 +57,9 @@
 .publicShell{min-height:100vh;display:flex;flex-direction:column;background:#f5f7f6}
 .publicNavbar{position:sticky;top:0;z-index:40;background:#fffffffa;backdrop-filter:blur(10px);border-bottom:1px solid #dfe7e2;height:76px;display:flex;align-items:center;justify-content:space-between;padding:0 48px}
 .publicBrand{display:flex;align-items:center;gap:12px;text-decoration:none;cursor:pointer}
+.brandFlagBadge{height:38px;width:63px;border-radius:6px;object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,.15);border:1.5px solid #14493e25;display:block;flex-shrink:0;transition:transform .2s ease,box-shadow .2s ease}
+.publicBrand:hover .brandFlagBadge{transform:scale(1.04);box-shadow:0 4px 12px rgba(20,73,62,.25);border-color:#14493e}
+.sidebar .brand .brandFlagBadge{border-color:#d5ae5980;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 .publicBrand .seal{height:42px;width:42px;border:2px solid #14493e;color:#14493e;background:#eaf4f0}
 .publicBrand strong{font:700 20px Georgia,serif;color:#10352f;line-height:1.1}
 .publicBrand small{display:block;font-size:12px;color:#5f786d;font-weight:600}

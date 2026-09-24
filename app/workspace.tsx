@@ -81,6 +81,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { GRAND_GEDEH_FLAG_DATA_URI } from './flagData';
 
 const moduleIcons: Record<string, any> = {
   agreements: FileText,
@@ -1212,8 +1213,19 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
 
           {/* OFFICIAL LETTERHEAD */}
           <div style={{ textAlign: 'center', borderBottom: '3px double #133e36', paddingBottom: '18px', marginBottom: '22px' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '56px', height: '56px', borderRadius: '50%', background: '#133e36', color: '#f3d999', fontSize: '26px', fontWeight: 'bold', fontFamily: 'sans-serif', margin: '0 auto 10px' }}>
-              G
+            <div style={{ margin: '0 auto 12px', display: 'flex', justifyContent: 'center' }}>
+              <img
+                src={GRAND_GEDEH_FLAG_DATA_URI}
+                alt="Grand Gedeh County Flag"
+                style={{
+                  height: '46px',
+                  width: '77px',
+                  borderRadius: '6px',
+                  border: '1.5px solid #133e3630',
+                  boxShadow: '0 3px 10px rgba(19, 62, 54, 0.15)',
+                  objectFit: 'cover'
+                }}
+              />
             </div>
             <div style={{ fontSize: '12px', letterSpacing: '2px', textTransform: 'uppercase', color: '#687b73', fontWeight: 700, fontFamily: 'sans-serif' }}>
               Republic of Liberia • Grand Gedeh County
@@ -1571,8 +1583,19 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
 
           {/* OFFICIAL LETTERHEAD */}
           <div style={{ textAlign: 'center', borderBottom: '3px double #133e36', paddingBottom: '18px', marginBottom: '22px' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '56px', height: '56px', borderRadius: '50%', background: '#133e36', color: '#f3d999', fontSize: '26px', fontWeight: 'bold', fontFamily: 'sans-serif', margin: '0 auto 10px' }}>
-              G
+            <div style={{ margin: '0 auto 12px', display: 'flex', justifyContent: 'center' }}>
+              <img
+                src={GRAND_GEDEH_FLAG_DATA_URI}
+                alt="Grand Gedeh County Flag"
+                style={{
+                  height: '46px',
+                  width: '77px',
+                  borderRadius: '6px',
+                  border: '1.5px solid #133e3630',
+                  boxShadow: '0 3px 10px rgba(19, 62, 54, 0.15)',
+                  objectFit: 'cover'
+                }}
+              />
             </div>
             <div style={{ fontSize: '12px', letterSpacing: '2px', textTransform: 'uppercase', color: '#687b73', fontWeight: 700, fontFamily: 'sans-serif' }}>
               Republic of Liberia • Grand Gedeh County
@@ -3979,7 +4002,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
         {/* PUBLIC TOP NAVBAR */}
         <header className="publicNavbar">
           <div className="publicBrand" onClick={() => setPublicTab('home')}>
-            <div className="seal">G</div>
+            <img src={GRAND_GEDEH_FLAG_DATA_URI} alt="Grand Gedeh County Flag" className="brandFlagBadge" />
             <div>
               <strong>GGCDC</strong>
               <small>Grand Gedeh Citizens Development Council</small>
@@ -4339,7 +4362,13 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
           <div className="publicFooterInner">
             <div className="publicFooterTop">
               <div className="publicFooterBrand">
-                <strong>Grand Gedeh Citizens Development Council (GGCDC)</strong>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '10px' }}>
+                  <img src={GRAND_GEDEH_FLAG_DATA_URI} alt="Grand Gedeh County Flag" className="brandFlagBadge" style={{ height: '36px', width: '60px' }} />
+                  <div>
+                    <strong style={{ margin: 0 }}>Grand Gedeh Citizens Development Council (GGCDC)</strong>
+                    <div style={{ fontSize: '12px', color: '#a9c9bc' }}>One County • One Voice • Shared Development</div>
+                  </div>
+                </div>
                 <p>
                   A nonpartisan, county-centered platform uniting customary communities, traditional elders, women, youth, professionals, and diaspora partners to advocate for Grand Gedeh's natural resources and ensure genuine community benefits.
                 </p>
@@ -4387,7 +4416,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
       {/* SIDEBAR NAVIGATION */}
       <aside className={`sidebar ${mobileMenuOpen ? 'show' : ''}`}>
         <div className="brand">
-          <div className="seal">G</div>
+          <img src={GRAND_GEDEH_FLAG_DATA_URI} alt="Grand Gedeh County Flag" className="brandFlagBadge" />
           <div>
             <strong>GGCDC</strong>
             <small>Council Workspace</small>
