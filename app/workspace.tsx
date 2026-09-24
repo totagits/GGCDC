@@ -256,11 +256,11 @@ const HERO_SLIDES = [
   },
   {
     id: 5,
-    tag: 'CORRIDOR HAULAGE • HEAVY LOGISTICS',
-    title: 'Corridor Road Clearance & Heavy Equipment Mobilization',
-    caption: 'Heavy machinery and local workforce mobilizing on rainy season transport corridors, underscoring the urgent need for paved multi-user road infrastructure.',
-    imageUrl: './images/heavy_equipment_road_clearance.jpg',
-    alt: 'Heavy equipment excavator clearing mud on Grand Gedeh corridor road'
+    tag: 'ALLUVIAL GOLD MINING • LOCAL EXTRACTION',
+    title: 'Grand Gedeh Gold Mining & Alluvial Operations',
+    caption: 'Local artisanal miners, heavy machinery operators, and youth engaged in gold mining in Grand Gedeh County, underscoring the urgent need for environmental safeguards, formalization, and fair local benefits.',
+    imageUrl: './images/grand_gedeh_gold_mining.jpg',
+    alt: 'Gold mining excavation and local miners in Grand Gedeh County'
   },
   {
     id: 6,
