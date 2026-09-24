@@ -2060,7 +2060,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
       </div>
 
       {/* FLOWCHART / ARCHITECTURE VISUALIZATION */}
-      <div style={{ background: '#fff', border: '1px solid #dce5e0', borderRadius: '14px', padding: '32px', marginBottom: '32px', boxShadow: '0 4px 16px #10352f08' }}>
+      <div style={{ background: 'rgba(255, 255, 255, 0.76)', backdropFilter: 'blur(16px) saturate(160%)', WebkitBackdropFilter: 'blur(16px) saturate(160%)', border: '1px solid rgba(255, 255, 255, 0.85)', borderRadius: '16px', padding: '32px', marginBottom: '32px', boxShadow: '0 10px 32px rgba(16, 53, 47, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.95)' }}>
         <h3 style={{ font: '700 20px Georgia', margin: '0 0 20px', color: '#10352f', textAlign: 'center' }}>
           Grand Gedeh Institutional Tripartite Arrangement
         </h3>
@@ -4093,14 +4093,18 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
               <div
                 key={t.id}
                 style={{
-                  background: '#fff',
-                  border: '1px solid #dce5e0',
-                  borderRadius: '10px',
+                  background: 'rgba(255, 255, 255, 0.76)',
+                  backdropFilter: 'blur(16px) saturate(160%)',
+                  WebkitBackdropFilter: 'blur(16px) saturate(160%)',
+                  border: '1px solid rgba(255, 255, 255, 0.85)',
+                  borderRadius: '14px',
                   padding: '22px 26px',
                   display: 'grid',
                   gridTemplateColumns: '1fr 260px',
                   gap: '20px',
-                  alignItems: 'start'
+                  alignItems: 'start',
+                  boxShadow: '0 8px 30px rgba(16, 53, 47, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.95)',
+                  transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
                 }}
               >
                 <div>
@@ -4583,7 +4587,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
               </div>
 
               {/* QUICK FEATURE HIGHLIGHT: 14 PUTU MODULES */}
-              <div style={{ background: '#fff', border: '1px solid #dce5e0', borderRadius: '14px', padding: '32px', marginBottom: '36px' }}>
+              <div style={{ background: 'rgba(255, 255, 255, 0.76)', backdropFilter: 'blur(16px) saturate(160%)', WebkitBackdropFilter: 'blur(16px) saturate(160%)', border: '1px solid rgba(255, 255, 255, 0.85)', borderRadius: '16px', padding: '32px', marginBottom: '36px', boxShadow: '0 10px 32px rgba(16, 53, 47, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.95)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '22px', flexWrap: 'wrap', gap: '12px' }}>
                   <div>
                     <h2 style={{ font: '700 24px Georgia', margin: 0, color: '#133e36' }}>
@@ -4955,13 +4959,17 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
             <>
               {/* CHARTER BANNER */}
               <div style={{
-                background: 'linear-gradient(135deg, #10352f 0%, #174b43 100%)',
+                background: 'linear-gradient(135deg, rgba(16, 53, 47, 0.94) 0%, rgba(9, 36, 32, 0.98) 100%)',
+                backdropFilter: 'blur(24px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(24px) saturate(180%)',
                 color: '#fff',
-                borderRadius: '12px',
-                padding: '24px 28px',
+                borderRadius: '16px',
+                padding: '26px 30px',
                 marginBottom: '28px',
-                boxShadow: '0 6px 20px #10352f20',
-                border: '1px solid #d5ae5950'
+                boxShadow: '0 20px 48px rgba(0, 0, 0, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.18)',
+                border: '1px solid rgba(213, 174, 89, 0.35)',
+                position: 'relative',
+                overflow: 'hidden'
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
                   <div>
@@ -5051,17 +5059,21 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                   <button
                     onClick={() => setDashboardView('overview')}
                     style={{
-                      padding: '9px 18px',
-                      borderRadius: '8px',
-                      border: 'none',
-                      background: dashboardView === 'overview' ? '#14493e' : '#eaf2ee',
+                      padding: '10px 20px',
+                      borderRadius: '10px',
+                      border: dashboardView === 'overview' ? '1px solid rgba(213, 174, 89, 0.4)' : '1px solid rgba(215, 229, 222, 0.7)',
+                      background: dashboardView === 'overview' ? 'linear-gradient(135deg, #185f4a 0%, #104334 100%)' : 'rgba(255, 255, 255, 0.7)',
+                      backdropFilter: 'blur(10px)',
+                      WebkitBackdropFilter: 'blur(10px)',
                       color: dashboardView === 'overview' ? '#fff' : '#284c40',
                       fontWeight: 700,
-                      fontSize: '14px',
+                      fontSize: '13.5px',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '8px'
+                      gap: '8px',
+                      boxShadow: dashboardView === 'overview' ? '0 4px 16px rgba(24, 95, 74, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.25)' : '0 2px 8px rgba(16, 53, 47, 0.04)',
+                      transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
                     }}
                   >
                     <LayoutDashboard size={16} /> 14 Operational Work Areas
@@ -5070,17 +5082,21 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                   <button
                     onClick={() => setDashboardView('approvals')}
                     style={{
-                      padding: '9px 18px',
-                      borderRadius: '8px',
-                      border: 'none',
-                      background: dashboardView === 'approvals' ? '#14493e' : '#eaf2ee',
+                      padding: '10px 20px',
+                      borderRadius: '10px',
+                      border: dashboardView === 'approvals' ? '1px solid rgba(213, 174, 89, 0.4)' : '1px solid rgba(215, 229, 222, 0.7)',
+                      background: dashboardView === 'approvals' ? 'linear-gradient(135deg, #185f4a 0%, #104334 100%)' : 'rgba(255, 255, 255, 0.7)',
+                      backdropFilter: 'blur(10px)',
+                      WebkitBackdropFilter: 'blur(10px)',
                       color: dashboardView === 'approvals' ? '#fff' : '#284c40',
                       fontWeight: 700,
-                      fontSize: '14px',
+                      fontSize: '13.5px',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '8px'
+                      gap: '8px',
+                      boxShadow: dashboardView === 'approvals' ? '0 4px 16px rgba(24, 95, 74, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.25)' : '0 2px 8px rgba(16, 53, 47, 0.04)',
+                      transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
                     }}
                   >
                     <ClipboardCheck size={16} /> Tripartite Verification &amp; Approvals Queue
@@ -5100,7 +5116,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                 </div>
 
                 {dashboardView === 'approvals' && (
-                  <div style={{ display: 'flex', gap: '6px', background: '#eef5f1', padding: '4px', borderRadius: '8px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: '6px', background: 'rgba(255, 255, 255, 0.65)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(215, 229, 222, 0.8)', padding: '5px', borderRadius: '10px', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.03)', flexWrap: 'wrap' }}>
                     <button
                       onClick={() => setApprovalsFilter('all')}
                       style={{
@@ -5213,7 +5229,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
               {dashboardView === 'approvals' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   {/* Institutional Vetting Authority Notice */}
-                  <div style={{ background: '#f4f8f6', border: '1px solid #d3e4dc', borderRadius: '10px', padding: '16px 20px', display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
+                  <div style={{ background: 'rgba(255, 255, 255, 0.74)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255, 255, 255, 0.85)', borderRadius: '14px', padding: '18px 22px', display: 'flex', alignItems: 'flex-start', gap: '14px', boxShadow: '0 6px 24px rgba(16, 53, 47, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.9)' }}>
                     <ShieldCheck size={24} color="#14493e" style={{ flexShrink: 0, marginTop: '2px' }} />
                     <div style={{ fontSize: '13px', color: '#2d4b3f', lineHeight: 1.5 }}>
                       <strong style={{ color: '#10352f', display: 'block', fontSize: '14px', marginBottom: '4px' }}>
@@ -5260,12 +5276,14 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
                         <div
                           key={item.id}
                           style={{
-                            background: '#fff',
-                            border: isVerified ? '1px solid #c8e6c9' : '1px solid #dce5e0',
-                            borderRadius: '12px',
+                            background: isVerified ? 'rgba(240, 253, 244, 0.82)' : 'rgba(255, 255, 255, 0.76)',
+                            backdropFilter: 'blur(16px) saturate(160%)',
+                            WebkitBackdropFilter: 'blur(16px) saturate(160%)',
+                            border: isVerified ? '1.5px solid rgba(46, 125, 50, 0.35)' : '1px solid rgba(255, 255, 255, 0.85)',
+                            borderRadius: '14px',
                             padding: '22px 24px',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-                            transition: 'all 0.15s ease'
+                            boxShadow: '0 8px 30px rgba(16, 53, 47, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.95)',
+                            transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
                           }}
                         >
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
