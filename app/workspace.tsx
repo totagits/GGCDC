@@ -220,7 +220,7 @@ const ROLES: RoleDef[] = [
   }
 ];
 
-// 5 Authentic Local Photos for Hero Carousel (Awaiting 3 additional local pictures from user)
+// 8 Authentic Local Photos for Hero Carousel
 const HERO_SLIDES = [
   {
     id: 1,
@@ -232,6 +232,22 @@ const HERO_SLIDES = [
   },
   {
     id: 2,
+    tag: 'COUNTY SEAT • URBAN CORRIDOR',
+    title: 'Zwedru City Center & Administrative Square',
+    caption: 'Iconic aerial view of Zwedru City center, showing the administrative complex, commercial boulevard, and central square connecting county districts.',
+    imageUrl: './images/zwedru_city_aerial_center.png',
+    alt: 'Aerial view of Zwedru City Center, Grand Gedeh County'
+  },
+  {
+    id: 3,
+    tag: 'HUMAN CAPITAL • NEXT-GEN EDUCATION',
+    title: 'Barwo Town Public School Students (Konobo District)',
+    caption: 'Smiling students and teachers at Barwo Town Public School in Konobo District, demonstrating the vital human capital and youth education needing mineral revenue investment.',
+    imageUrl: './images/konobo_barwo_school_children.png',
+    alt: 'Students of Barwo Town Public School, Konobo District, Grand Gedeh'
+  },
+  {
+    id: 4,
     tag: 'AGRARIAN COOPERATIVES • LOCAL CONTENT',
     title: 'Grand Gedeh Agrarian Farmers & Rice Harvest',
     caption: 'Bona fide county farmers and women harvesting golden swamp rice, demonstrating agricultural capacity to supply mine catering and county food security.',
@@ -239,15 +255,23 @@ const HERO_SLIDES = [
     alt: 'Grand Gedean women farmers harvesting golden rice in the field'
   },
   {
-    id: 3,
-    tag: 'CORRIDOR CONNECTIVITY • INFRASTRUCTURE',
-    title: 'Zwedru Corridor Highway & All-Weather Transit',
-    caption: 'Elevated view of the main corridor thoroughfare in Zwedru, highlighting essential road infrastructure needed for regional commerce and community access.',
+    id: 5,
+    tag: 'CORRIDOR HAULAGE • HEAVY LOGISTICS',
+    title: 'Corridor Road Clearance & Heavy Equipment Mobilization',
+    caption: 'Heavy machinery and local workforce mobilizing on rainy season transport corridors, underscoring the urgent need for paved multi-user road infrastructure.',
+    imageUrl: './images/heavy_equipment_road_clearance.jpg',
+    alt: 'Heavy equipment excavator clearing mud on Grand Gedeh corridor road'
+  },
+  {
+    id: 6,
+    tag: 'ALL-WEATHER CONNECTIVITY • INFRASTRUCTURE',
+    title: 'Zwedru Corridor Highway & Regional Trade Routes',
+    caption: 'Elevated view of the main corridor thoroughfare through Zwedru, demonstrating essential all-weather road connectivity required for countywide commerce.',
     imageUrl: './images/zwedru_corridor_highway.png',
     alt: 'Corridor Highway and boulevard in Zwedru, Grand Gedeh'
   },
   {
-    id: 4,
+    id: 7,
     tag: 'CUSTOMARY GOVERNANCE • CHIEFLY CONSENSUS',
     title: 'Community Stakeholder & Palava Hut Assembly',
     caption: 'Traditional chiefs, clan elders, women leaders, youth, and county stakeholders meeting to deliberate on land rights, FPIC consent, and community development.',
@@ -255,9 +279,9 @@ const HERO_SLIDES = [
     alt: 'Grand Gedeh customary community stakeholders gathered in palava consultation'
   },
   {
-    id: 5,
+    id: 8,
     tag: 'COMMUNITY BENEFITS • SOCIAL INFRASTRUCTURE',
-    title: 'Modern Community Clinics & School Infrastructure',
+    title: 'Modern Community Clinics & Health Facilities',
     caption: 'New civic social infrastructure constructed in the county, demonstrating the tangible healthcare and educational benefits required from mineral royalties.',
     imageUrl: './images/community_clinic_school.png',
     alt: 'Newly constructed community health clinic and school building in Grand Gedeh'
