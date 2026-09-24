@@ -1017,6 +1017,22 @@ td small {
   text-decoration: none;
   cursor: pointer;
 }
+.brandLogoBadge {
+  height: 44px;
+  width: 44px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.22));
+  display: block;
+  flex-shrink: 0;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), filter 0.25s ease;
+}
+.publicBrand:hover .brandLogoBadge {
+  transform: scale(1.06);
+  filter: drop-shadow(0 4px 12px rgba(20, 73, 62, 0.45));
+}
+.sidebar .brand .brandLogoBadge {
+  filter: drop-shadow(0 2px 8px rgba(213, 174, 89, 0.4));
+}
 .brandFlagBadge {
   height: 38px;
   width: 63px;

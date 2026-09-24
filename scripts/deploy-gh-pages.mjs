@@ -14,6 +14,9 @@ if (existsSync('public/favicon.svg')) {
 if (existsSync('public/favicon.png')) {
   copyFileSync('public/favicon.png', 'dist-pages/favicon.png');
 }
+if (existsSync('public/favicon.ico')) {
+  copyFileSync('public/favicon.ico', 'dist-pages/favicon.ico');
+}
 if (existsSync('public/logo.png')) {
   copyFileSync('public/logo.png', 'dist-pages/logo.png');
 }

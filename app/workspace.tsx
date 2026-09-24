@@ -85,6 +85,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { GRAND_GEDEH_FLAG_DATA_URI } from './flagData';
+import { GGCDC_LOGO_DATA_URI } from './logoData';
 
 const moduleIcons: Record<string, any> = {
   agreements: FileText,
@@ -1431,15 +1432,13 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
           <div style={{ textAlign: 'center', borderBottom: '3px double #133e36', paddingBottom: '18px', marginBottom: '22px' }}>
             <div style={{ margin: '0 auto 12px', display: 'flex', justifyContent: 'center' }}>
               <img
-                src={GRAND_GEDEH_FLAG_DATA_URI}
-                alt="Grand Gedeh County Flag"
+                src={GGCDC_LOGO_DATA_URI}
+                alt="Grand Gedeh Citizens Development Council Official Emblem"
                 style={{
-                  height: '46px',
-                  width: '77px',
-                  borderRadius: '6px',
-                  border: '1.5px solid #133e3630',
-                  boxShadow: '0 3px 10px rgba(19, 62, 54, 0.15)',
-                  objectFit: 'cover'
+                  height: '76px',
+                  width: '76px',
+                  objectFit: 'contain',
+                  filter: 'drop-shadow(0 4px 12px rgba(19, 62, 54, 0.2))'
                 }}
               />
             </div>
@@ -1828,15 +1827,13 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
           <div style={{ textAlign: 'center', borderBottom: '3px double #133e36', paddingBottom: '18px', marginBottom: '22px' }}>
             <div style={{ margin: '0 auto 12px', display: 'flex', justifyContent: 'center' }}>
               <img
-                src={GRAND_GEDEH_FLAG_DATA_URI}
-                alt="Grand Gedeh County Flag"
+                src={GGCDC_LOGO_DATA_URI}
+                alt="Grand Gedeh Citizens Development Council Official Emblem"
                 style={{
-                  height: '46px',
-                  width: '77px',
-                  borderRadius: '6px',
-                  border: '1.5px solid #133e3630',
-                  boxShadow: '0 3px 10px rgba(19, 62, 54, 0.15)',
-                  objectFit: 'cover'
+                  height: '76px',
+                  width: '76px',
+                  objectFit: 'contain',
+                  filter: 'drop-shadow(0 4px 12px rgba(19, 62, 54, 0.2))'
                 }}
               />
             </div>
@@ -5669,9 +5666,9 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
         <DialogHeader>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '8px' }}>
             <img
-              src={GRAND_GEDEH_FLAG_DATA_URI}
-              alt="Grand Gedeh Flag"
-              style={{ height: '36px', width: '60px', borderRadius: '4px', border: '1px solid #14493e30', objectFit: 'cover' }}
+              src={GGCDC_LOGO_DATA_URI}
+              alt="Grand Gedeh Citizens Development Council Official Emblem"
+              style={{ height: '48px', width: '48px', objectFit: 'contain', filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.15))' }}
             />
             <div>
               <DialogTitle style={{ fontFamily: 'Georgia, serif', fontSize: '20px', color: '#10352f', margin: 0 }}>
@@ -5768,7 +5765,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
         {/* PUBLIC TOP NAVBAR */}
         <header className="publicNavbar">
           <div className="publicBrand" onClick={() => setPublicTab('home')}>
-            <img src={GRAND_GEDEH_FLAG_DATA_URI} alt="Grand Gedeh County Flag" className="brandFlagBadge" />
+            <img src={GGCDC_LOGO_DATA_URI} alt="Grand Gedeh Citizens Development Council Official Emblem" className="brandLogoBadge" />
             <div>
               <strong>GGCDC</strong>
               <small>Grand Gedeh Citizens Development Council</small>
@@ -6161,7 +6158,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
             <div className="publicFooterTop">
               <div className="publicFooterBrand">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '10px' }}>
-                  <img src={GRAND_GEDEH_FLAG_DATA_URI} alt="Grand Gedeh County Flag" className="brandFlagBadge" style={{ height: '36px', width: '60px' }} />
+                  <img src={GGCDC_LOGO_DATA_URI} alt="Grand Gedeh Citizens Development Council Official Emblem" className="brandLogoBadge" style={{ height: '52px', width: '52px' }} />
                   <div>
                     <strong style={{ margin: 0 }}>Grand Gedeh Citizens Development Council (GGCDC)</strong>
                     <div style={{ fontSize: '12px', color: '#a9c9bc' }}>One County • One Voice • Shared Development</div>
@@ -6215,7 +6212,7 @@ export default function Workspace({ user: initialUser }: { user?: string }) {
       {/* SIDEBAR NAVIGATION */}
       <aside className={`sidebar ${mobileMenuOpen ? 'show' : ''}`}>
         <div className="brand">
-          <img src={GRAND_GEDEH_FLAG_DATA_URI} alt="Grand Gedeh County Flag" className="brandFlagBadge" />
+          <img src={GGCDC_LOGO_DATA_URI} alt="Grand Gedeh Citizens Development Council Official Emblem" className="brandLogoBadge" />
           <div>
             <strong>GGCDC</strong>
             <small>Council Workspace</small>
